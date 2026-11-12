@@ -13,7 +13,7 @@ Method notes drawn from papers and engineering articles. One file per source, gr
 
 ## Note format
 
-Target length 500 to 900 words. Model example: [context-management/jetbrains-complexity-trap.md](context-management/jetbrains-complexity-trap.md).
+No word limit: long enough to give the reasoning, no longer. Model example: [context-management/jetbrains-complexity-trap.md](context-management/jetbrains-complexity-trap.md).
 
 ```
 # <Title naming the method or question, not the paper>
@@ -58,5 +58,5 @@ A source with no method to apply (a failure taxonomy, a survey) keeps the same s
 
 - A number is written only if it was found in the source text itself, not in a tool's digest of the page. Anything else is marked unchecked.
 - Claims from the source and our own inferences are never mixed in one sentence.
-- A source that would not change any open design decision does not belong here.
-- Each folder's `README.md` lists its notes with grade and one-line takeaway, then the patterns across them. Each pattern names the notes it rests on, so a pattern resting only on grade D sources is visibly weaker.
+- Kept: well-known sources, and sources worth reading in full for this project. Anything else is deleted (git history keeps it).
+- Each folder's `README.md` is one table: every note with grade and one-line takeaway.

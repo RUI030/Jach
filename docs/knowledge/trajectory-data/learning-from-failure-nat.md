@@ -70,7 +70,7 @@ Our interpretation, not the paper's claims.
 - Do not put the 9B model's own failed runs into its training data, tagged or not. The low-quality-negatives result is the direct evidence against it.
 - Failed runs from the admin model are a different case. While verified Jac trajectories are few, they may add value with an outcome tag (acceptance criteria met or not) in the task message. They should be dropped once positives are plentiful.
 - Tool-call correctness is our weak point, and negatives more than doubled the action error rate here even with the tag. Any trial must report tool-error rate per phase, not only task success.
-- Recovery data (an error followed by a fix in a run that succeeds) is a positive example and is not what this paper tests. Error masking within such runs is covered in [rome-error-masked-training.md](rome-error-masked-training.md).
+- Recovery data (an error followed by a fix in a run that succeeds) is a positive example and is not what this paper tests.
 
 ## Reference
 
