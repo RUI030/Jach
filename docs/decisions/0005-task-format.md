@@ -1,50 +1,102 @@
-# 0005: Task format
+# 0005: Work units and task format
 
-- **Status:** Proposed, 2026-11-12. Not yet accepted.
+- **Status:** Accepted in outline, 2026-11-12. Two points open (section 6).
 - **Layer:** flow control, state and recovery
 - **Builds on:** [0004](0004-sdlc-phases-and-gates.md)
 
 ## Principle
 
-A task is the amount of work the small model does in one context. Anyone, the same model after a restart or the admin model, must be able to pick a task up from its card and the files on disk, with no memory of earlier turns.
+Work is cut by feature, so each finished unit is something a user can do. Anyone, the same model after a restart or the admin model, must be able to pick the work up from the cards and the files on disk, with no memory of earlier turns.
 
-## 1. The task card
+## 1. Four levels
+
+```mermaid
+flowchart LR
+    P[Project] --> F[Feature]
+    F --> T[Task]
+    T --> S[Step]
+```
+
+| Level | Is | Example | Done when |
+|---|---|---|---|
+| Project | The app in the brief | To-do app | Every action in the brief passes in E2E |
+| Feature | A group of related actions | Task list | All its tasks pass |
+| Task | One action, end to end | "Add a task" | Its unit tests pass and its action from the brief passes in the browser |
+| Step | One kind of code inside a task | Server body, wiring, component, page | Check is clean, plus the step's own check (section 3) |
+
+- The first feature is always **Foundation**: the data definitions every other feature uses. Setup has already provided the running skeleton.
+- A step is the smallest unit with a gate, and so the smallest unit work can resume from.
+
+## 2. The dependency graph
+
+The model drafts it; a script builds and checks it. The model never writes the graph itself.
+
+```mermaid
+flowchart LR
+    D[Draft] -->|declaration files| X[Extract]
+    X -->|edges| V[Validate]
+    V -->|errors| D
+    V -->|ok| G[Graph]
+    G --> O[Order]
+```
+
+| Stage | Who | What happens |
+|---|---|---|
+| Draft | Model | Writes the declaration files. They contain real `import from M { Name }` lines and typed signatures, so every "uses" relation is ordinary Jac code. |
+| Extract | Script | Walks the AST. Edges come from three places: imported names, types used in signatures and fields, components used in JSX. |
+| Validate | Script | Every imported name exists (W1100, W1101, W1102 as errors). No cycles. Every endpoint a client file imports is also imported in the entry file. Every declared name is used by something or is an endpoint or a page. |
+| Graph | Script | Stored as data: `name -> file`, `name -> names it uses`. Three states per name: built, planned, unknown. |
+| Order | Script | Task and step dependencies are computed from the graph, never typed in. |
+
+After each step the script re-extracts from the real code and compares:
+
+| Difference | Response |
+|---|---|
+| A body uses a planned name that was not in the draft | Edge is added. Allowed if the name's task has passed or is the current one. |
+| A body uses a name that is in no file | Error returned to the model: the name does not exist. It must use an existing name or go back to Plan to add one. |
+| A drafted edge is not used by the finished body | Recorded, no action |
+
+The model can query the graph at any time through a tool (`map`): what a file exports, who uses a name, whether a name is built, planned or unknown.
+
+## 3. The cards
+
+The model creates tasks with `add_task`, one call per task. The harness renders the list as a readable file for interactive mode.
 
 | Field | Written by | Content |
 |---|---|---|
-| `id`, `title` | Model | `T03`, "Task endpoints" |
+| `id`, `title`, `feature` | Model | `T03`, "Add a task", "Task list" |
 | `goal` | Model | One sentence |
-| `writes` | Model | Files this task may create or edit. No other file can be written. |
+| `action` | Model | The action from the brief this task delivers |
 | `implements` | Model | Declared names this task gives bodies to |
-| `accept` | Model | Unit test names, or action names from the brief |
-| `depends_on` | Harness | Tasks whose declarations this one uses, from the dependency graph |
-| `reads` | Harness | Signatures of everything the task uses, taken from the declaration files |
-| `status` | Harness | See section 2 |
-| `note` | Harness | Factual handover: attempts so far, current first error, last test result |
+| `tests` | Model | Unit tests that must pass |
+| `steps` | Harness | Derived from `implements`: one step per kind of code, in dependency order |
+| `writes` | Harness | Files holding the names in `implements` |
+| `depends_on`, `uses` | Harness | From the graph, with the signatures of everything used |
+| `status`, `note` | Harness | Status per step; factual handover (attempts, current first error, last test result) |
 
-- The model creates tasks with an `add_task` tool call in Plan, one call per task. It does not write a task file by hand.
-- The model fills only what needs judgement. Everything that can be derived from the code is derived, so it cannot be wrong or stale.
+Step kinds and their checks:
 
-Example, as the model sees it at the start of the task:
+| Step | Writes | Check after `jac check` is clean |
+|---|---|---|
+| Server | Bodies of the task's server names | The task's unit tests pass |
+| Wiring | Entry-file imports | The task's endpoints appear in `/openapi.json` |
+| Component | Bodies of the task's components | Props match the declarations |
+| Page | The page that shows them | Page renders with no errors; the task's action passes |
 
-```
-T03  Task endpoints
-goal:        Store tasks and return the list.
-writes:      tasks.impl.jac
-implements:  AddTask, ListTasks, ToggleTask
-accept:      test_add_task, test_list_tasks, test_toggle_task
-uses:        node Task { has title: str; has done: bool = False; }
-status:      active (attempt 1)
-```
+Checks on the task list at the Plan gate:
 
-## 2. Life of a task
+- Every declared name is in exactly one task's `implements`.
+- Every action in the brief belongs to exactly one task; every unit test to at least one.
+- No cycles between tasks.
+
+## 4. Life of a task
 
 ```mermaid
 stateDiagram-v2
     [*] --> Pending
     Pending --> Ready: deps passed
-    Ready --> Active: picked
-    Active --> Passed: accept ok
+    Ready --> Active: chosen
+    Active --> Passed: all steps pass
     Active --> Stalled: no progress
     Stalled --> Active: fresh / advise
     Stalled --> Passed: takeover
@@ -52,47 +104,16 @@ stateDiagram-v2
     Passed --> [*]
 ```
 
-| Status | Meaning |
-|---|---|
-| Pending | A task it depends on has not passed |
-| Ready | Can start. The harness picks the next ready task; the model does not choose. |
-| Active | The model is working on it |
-| Stalled | The stall rule fired (decision 10); the ladder in 0004 section 3 applies |
-| Passed | Check is clean and every item in `accept` passes |
+- **Choosing the next task.** The harness lists the Ready tasks; the model picks one. With one Ready task there is no choice. Steps inside a task run in the order the graph gives.
+- **Status is never trusted from a stored value.** On resume the harness re-runs every step's check and sets the status from the result.
 
-**Status is never trusted from a stored value.** On resume the harness re-runs Check and `accept` for every task and sets the status from the result. A crash, a manual edit or a wrong claim cannot leave the task list out of step with the code.
+## 5. Size and context
 
-## 3. Cutting the plan into tasks
+- The limit is the context window: 262,144 tokens. No smaller cap is set by guess.
+- The harness records the tokens used by every step and task. Any later limit on task size comes from those measurements.
+- Known risk, to be measured and not assumed: training samples so far reach 64k tokens, so behaviour beyond that is untested.
 
-```mermaid
-flowchart LR
-    D[Data] --> S[Server]
-    S --> W[Wiring]
-    W --> C[Components]
-    C --> G[Pages]
-```
+## 6. Open points
 
-| Kind | One task is | Accepted by |
-|---|---|---|
-| Data | The node and edge definitions | `jac check` |
-| Server | The bodies of one server module | Its unit tests |
-| Wiring | Entry-file imports for every endpoint | Each endpoint appears in `/openapi.json` |
-| Components | One client component | Check clean; its props match the declaration |
-| Pages | One page | Page renders with no errors; its actions from the brief pass |
-
-Rules the harness enforces on the task list at the Plan gate:
-
-- Every declared name is in exactly one task's `implements`.
-- Every file is in exactly one task's `writes`.
-- Every unit test and every action is in some task's `accept`.
-- No dependency cycles.
-- Size limit: at most 5 names in `implements` and 2 files in `writes`. A larger task is rejected and must be split.
-
-The Tests phase uses the same card: one task per server module, `writes` is the test file, accepted when the tests compile and fail.
-
-## 4. Open points
-
-1. **Slicing.** This draft cuts by layer (all server, then all client). The alternative is by feature: one task builds one action end to end (endpoint, component, wiring). By layer is simpler and each task has one kind of code. By feature gets a working button earlier and makes each task's acceptance a real user action.
-2. **Size limit.** 5 names and 2 files is a guess. It should come from the context budget (decision 3).
-3. **Order.** The harness picks the next ready task. Should the model have any say?
-4. **`add_task` versus a file.** A tool call per task uses the format the model is already reliable at. A file is easier for a person to read and edit in interactive mode. The harness can render the file from the calls.
+1. **Where context resets.** Proposal: one context per task; each finished step is folded to a summary inside it; a new task starts from the cards and the graph. The alternative is a reset at every step.
+2. **Tests phase.** 0004 writes all unit tests before any body. With features, the alternative is to write each feature's tests just before that feature. Proposal: keep 0004 (all first), since the declarations are complete after Plan.
