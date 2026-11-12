@@ -37,3 +37,14 @@
 | I-031 | 2026-11-11 | Cap reasoning length per step; 1112 produced runaway reasoning that hit the output limit | model status report | 1, 10 | new |
 | I-032 | 2026-11-11 | Pin one Jac version across training data, harness and evaluation | model status report | 13 | new |
 | I-033 | 2026-11-11 | An evaluation ladder from "one button changes one backend value" upward, three or more runs per task, always with a fixed baseline | model status report | 14 | new |
+| I-034 | 2026-11-11 | A map tool: for a folder or the whole project, show the dependency graph (which file imports what, resolved to the actual file and function), so the model looks things up and stops inventing imports | R | 6, 8 | discussing; compiler probe running |
+| I-035 | 2026-11-11 | Make use of Jac's function signatures, strict types and the AST in tool design | R | 6 | discussing; compiler probe running |
+| I-036 | 2026-11-11 | Keep the fresh-session handover even though the experiment shows little gain today: when one agent fails, the next must work out the current state and continue. The model has to run alone eventually, and training should bring back instruction following and debugging | R | 5, 12 | new |
+| I-037 | 2026-11-11 | The minimum input is the user's requirement. From it the model plans which `jac create` to run, which files, their dependency graph, which functions and what each does | R | 4 | new |
+| I-038 | 2026-11-11 | The implementation plan holds a draft dependency graph, the function list with each function's purpose, and how client and server components connect | R | 4, 5 | new |
+| I-039 | 2026-11-11 | Phase order: requirement → implementation plan → implementation → `jac check` and unit tests → per-page tests → full e2e → hand back to the user | R | 4 | new |
+| I-040 | 2026-11-11 | E2E feedback through screenshots; unsure whether Playwright MCP is the right vehicle or something simpler exists | R | 6 | new |
+| I-041 | 2026-11-11 | Mid-project change requests: the model revises the implementation plan and finds the code that must change | R | 4, 5 | new |
+| I-042 | 2026-11-11 | Write the plan as real declaration files (signatures in `.jac`, bodies later in `.impl.jac`), so `jac check` validates the plan, each body is one task, and the dependency graph is derived from code | C | 4, 5 | discussing; depends on the compiler probe |
+| I-043 | 2026-11-11 | Build a working client-to-server round trip first and fill in features after, since wiring is the most common failure | C | 4 | discussing |
+| I-044 | 2026-11-11 | The 9B model is loaded text-only, so screenshots cannot be its feedback; give it the accessibility snapshot, console errors and failed requests, and keep screenshots for the admin and the user | C | 6 | discussing |
