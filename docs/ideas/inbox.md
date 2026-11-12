@@ -69,7 +69,7 @@
 | I-063 | 2026-11-11 | Treat import warnings W1100, W1101 and W1102 as errors at write time | compiler probe | 6 | new |
 | I-064 | 2026-11-11 | Wiring check at write time: every endpoint name a client module uses must be in the entry file's import list; confirm against `/openapi.json` | compiler probe | 6 | new |
 | I-065 | 2026-11-11 | Catch `await` in non-async client code by syntax-checking the generated JavaScript | compiler probe | 6 | new |
-| I-066 | 2026-11-11 | Keep the compiler loaded in a long-lived process so a check after every write costs about 10 ms | compiler probe | 6, 11 | new |
+| I-066 | 2026-11-11 | Keep the compiler loaded in a long-lived process ; saves start-up only (0.4 to 0.8 s). Check cost is about 1 s per 1,000 to 1,500 lines, so keep files small and check the edited file only | compiler probe | 6, 11 | new |
 | I-067 | 2026-11-11 | On a parse error show only the first E0xxx and drop the cascade | compiler probe | 6 | new |
 | I-068 | 2026-11-11 | Readiness means `/static/client.js` returns 200; `/healthz` stays 200 when every page is 503 | compiler probe | 6 | new |
 | I-069 | 2026-11-11 | Feed the model the server log's source-mapped client errors as its main runtime signal | compiler probe | 6 | new |

@@ -155,15 +155,24 @@ Parse errors are followed by spurious type errors. Only the first E0xxx is worth
 
 ## 9. Speed
 
-| Method | Time per check |
-|---|---|
-| `jac check .` cold, five-file web app | 0.85 to 0.87 s |
-| `jac check -p` (parse only) | 0.19 s |
-| In-process, first run | 416 ms |
-| In-process, later runs, including after an edit on disk | 7 to 14 ms |
-| `jac lsp`, change to diagnostics | 0.32 s (a fixed 0.3 s debounce) |
+Check time grows with the amount of code. The first measurement (five-file template, 7 to 14 ms warm) does not hold for larger projects. Re-measured 2026-11-12 on seven real projects:
 
-A long-lived process that holds the compiler loaded is the fastest option by far.
+| Project size | `jac check .` (cold) |
+|---|---|
+| 329 lines, 3 files | 0.9 s |
+| 1,135 lines, 11 files | 1.6 s |
+| 2,215 lines, 10 files | 2.9 to 3.9 s |
+| 3,837 lines, 11 files | 5.8 s |
+| 6,562 lines, 52 files | 4.6 to 5.2 s |
+| 12,040 lines, 62 files | 28 to 31 s |
+| 28,933 lines, 124 files | 36 to 38 s |
+
+- A second run is no faster: nothing is cached between runs.
+- A warm process saves only start-up (about 0.4 to 0.8 s). The check itself costs roughly 1 s per 1,000 to 1,500 lines reachable from the checked file: a 1,672-line `main.jac` takes 1.4 to 1.8 s warm on every run; a 21-line entry file takes 67 ms.
+- Cost follows the file and what it imports, so checking only the edited file is cheaper than checking the project.
+- `jac check -p` (parse only) took 0.19 s on the template; `jac lsp` adds a fixed 0.3 s debounce.
+
+Consequence: a check after every write is cheap only while files are small and the app is in the low thousands of lines. For bulk data generation the checker is a real cost and runs must be parallelised across projects.
 
 ## 10. Coming in 0.38 (read in source, not run)
 
