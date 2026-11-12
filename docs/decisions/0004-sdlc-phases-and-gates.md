@@ -1,6 +1,6 @@
 # 0004: SDLC phases and gates
 
-- **Status:** Proposed, 2026-11-12. Not yet accepted.
+- **Status:** Accepted, 2026-11-12
 - **Layer:** flow control
 - **Builds on:** [0001](0001-flow-control-hybrid-state-machine.md) (harness owns phases, model owns the loop inside a task), [0003](0003-target-jac-0-36.md), [compiler probe](../research/compiler-probe-0.36.1.md)
 
@@ -140,8 +140,11 @@ action: add a task
 - The admin model may debug the test suite when a failure persists.
 - Packages are installed through a model tool call, so the step appears in trajectories.
 
-## 7. Open points
+- Understand gate in auto mode: the harness checks that the sections are filled; no confirmation.
+- Changing a declaration during Implement is decided by the dependency graph. If nothing outside the current task uses the declaration, the change is allowed. If another task's code or tests use it, the work goes back to Plan and the harness reopens the tasks that depend on it.
+- Action steps stay at `open`, `fill`, `click`, `expect` for now. More are added when a level needs them.
 
-1. **Understand gate in auto mode.** No user to confirm. Proposal: the harness checks the sections only.
-2. **Plan amendments during Implement.** Proposal: the model may change a declaration inside its own task's files freely; a change that touches another task's files sends the work back to Plan.
-3. **Action step format.** Is the closed set of four steps enough for levels 1 to 4?
+## 7. Still open
+
+- Stall thresholds (decision 10) and the admin model (decision 10a).
+- Task format (decision 5).
