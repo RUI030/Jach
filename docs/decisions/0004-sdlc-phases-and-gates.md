@@ -14,9 +14,9 @@ The harness moves the work from phase to phase. A phase ends only when its **gat
 flowchart LR
     U[Understand] -->|brief| P[Plan]
     P -->|plan files| S[Setup]
-    S -->|skeleton runs| I[Implement]
-    I -->|all tasks pass| T[Unit test]
-    T -->|tests pass| G[Page test]
+    S -->|skeleton runs| T[Tests]
+    T -->|tests fail first| I[Implement]
+    I -->|tests pass| G[Page test]
     G -->|pages pass| E[E2E]
     E -->|flows pass| D[Deliver]
     G -.->|bug| I
@@ -27,19 +27,20 @@ flowchart LR
 
 | Phase | Model produces | Gate (run by the harness) |
 |---|---|---|
-| Understand | `brief.md`: pages, data, user actions, out of scope | All required sections filled. Interactive mode: user confirms. |
+| Understand | `brief.md` (section 5) | All required sections filled. Interactive mode: user confirms. |
 | Plan | Declaration files (signatures only), file manifest, package list, task list | `jac check` passes on the declarations. Every task names its files, inputs, outputs and acceptance check. Every declared name belongs to exactly one task. |
-| Setup | Nothing by hand. The harness copies our template and installs the packages in the plan. | Server starts. `/static/client.js` returns 200. The template's one client-to-server call returns 200. |
-| Implement | Bodies for the declarations, one task at a time | See section 2. |
-| Unit test | Tests for server functions and walkers | `jac test` passes. Each endpoint has at least one test. |
+| Setup | An `install` tool call listing the packages from the plan. The harness copies our template and runs the install. | Server starts. `/static/client.js` returns 200. The template's one client-to-server call returns 200. |
+| Tests | Unit tests for every server function and walker, written against the declarations | Tests compile. Each endpoint has at least one test. Every test fails now (no bodies exist yet); a test that already passes is rejected. |
+| Implement | Bodies for the declarations, one task at a time | See section 2. Phase ends when the whole test suite passes. |
 | Page test | Nothing. The harness opens each page. | Page renders. No error in the server log or console. No request returns 4xx or 5xx. |
-| E2E | Fixes only. The flows come from the brief. | Each user action in the brief is run through `jac browse` and the expected text appears. |
+| E2E | Fixes only. The steps are the actions in the brief. | The harness runs each action through `jac browse` and finds the expected text. |
 | Deliver | Short summary | All earlier gates still pass on a clean start. |
 
 Notes:
 
 - **Plan is written as real Jac declaration files.** The compiler then checks the plan for consistency, and later reports every call site that a changed signature breaks.
 - **Setup comes before any feature code.** The stock template does not run on 0.36.1, so we ship our own, with one working round trip already in it.
+- **Tests and acceptance steps are written by the small model, before any body.** After their phase they are frozen: the small model cannot edit them during Implement. Only the admin model (Takeover) or a return to Plan can change them.
 - **Debugging is not a phase.** It is what happens inside any phase when a gate fails (section 3).
 - **A change request re-enters Plan.** The model edits the declarations; the harness lists the tasks whose files are affected and reopens only those.
 
@@ -91,7 +92,7 @@ flowchart LR
 | Fail | The model sees the first error and tries again in the same context. |
 | Fresh | The harness discards the task's turns and restarts the task with a factual handover note: what was tried, what the current error is. |
 | Advise | The admin model reads the state and writes a hint. The small model still makes the edit. |
-| Takeover | The admin model makes the edit itself. The fix is logged as recovery training data. |
+| Takeover | The admin model makes the edit itself. It may also fix a wrong test or acceptance step. The fix is logged as recovery training data. |
 | Resume | The small model continues from the next step. |
 
 "Stalled" is decided by the harness: the same error after N attempts, the same call repeated, or the task's token budget used up. The values are decision 10.
@@ -107,10 +108,40 @@ The same phases apply at every level; only the size of the plan changes.
 | 3 | One page with several components sharing state |
 | 4 | Several pages with routing |
 
-## 5. Open points
+## 5. The brief
+
+Written by the model in Understand. Fixed sections, so the harness can check and reuse it.
+
+| Section | Content | Example (level 2 to-do app) |
+|---|---|---|
+| Goal | One sentence | A to-do list where a user adds tasks and marks them done |
+| Pages | Route and purpose | `/`: the list and the add form |
+| Data | Things stored, with fields | Task: title (text), done (yes/no) |
+| Actions | What a user can do, each as fixed steps | See below |
+| Out of scope | What is not built | Login, editing a title |
+
+An action is a list of steps from a closed set: `open`, `fill`, `click`, `expect`.
+
+```
+action: add a task
+  open   /
+  fill   "New task"  with  "Buy milk"
+  click  "Add"
+  expect "Buy milk"
+```
+
+- The quoted labels are a contract: Implement must use exactly these visible labels.
+- The harness runs these steps unchanged in E2E. It never has to interpret prose.
+- The actions are the app-level acceptance criteria, so they follow the same freeze rule as tests.
+
+## 6. Decided in discussion (2026-11-12)
+
+- Tests and acceptance criteria are written by the small model before implementation.
+- The admin model may debug the test suite when a failure persists.
+- Packages are installed through a model tool call, so the step appears in trajectories.
+
+## 7. Open points
 
 1. **Understand gate in auto mode.** No user to confirm. Proposal: the harness checks the sections only.
-2. **Who writes unit tests.** Proposal: the model, after Implement. Alternative: tests are written during Plan, before the code, so the model cannot shape them to fit its code.
-3. **E2E flows.** Proposal: derived from the brief by the harness as fixed steps (open, fill, click, expect text). Alternative: the model writes them, which lets it write weak ones.
-4. **Plan amendments during Implement.** Proposal: the model may change a declaration inside its own task's files freely; a change that touches another task's files sends the work back to Plan.
-5. **Setup as a model step.** You suggested the model proposes and installs packages. In this draft the model proposes them in Plan and the harness installs. Letting the model run the install is the alternative.
+2. **Plan amendments during Implement.** Proposal: the model may change a declaration inside its own task's files freely; a change that touches another task's files sends the work back to Plan.
+3. **Action step format.** Is the closed set of four steps enough for levels 1 to 4?
