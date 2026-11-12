@@ -26,3 +26,14 @@
 | I-020 | 2026-11-11 | Run only the named test by default; a full `jac test` starts 32 workers | C | 6 | new |
 | I-021 | 2026-11-11 | Use the built-in `jac browse` for e2e tests; Playwright may not be needed | C | 6 | new |
 | I-022 | 2026-11-11 | The core runs headless; any terminal UI is a client of it | C | 2, 11 | new |
+| I-023 | 2026-11-11 | Knowledge articles follow a problem → method (key decisions, reusable implementation details) → evidence → evidence boundaries layout, with section-level citations and an evidence grade | R, C | docs process | discussing; pilot written |
+| I-024 | 2026-11-11 | The harness triggers the admin; do not wait for the small model to ask for help | C | 10a | new |
+| I-025 | 2026-11-11 | Train only on the admin's part of a rescued trajectory; mask the small model's failed prefix | C | 10a, 12 | new |
+| I-026 | 2026-11-11 | "Done" is decided by hard checks the model cannot influence (entry replaced, no error overlay, not blank, required text present, no 4xx) | model status report | 4, 5 | new |
+| I-027 | 2026-11-11 | Scaffold from a template that already has one working client-to-server round trip, so the model edits wiring and never invents it | model status report | 4, 6 | new |
+| I-028 | 2026-11-11 | Write-time checks beyond `jac check`: backend module imported by the entry, imports resolve, `await` only in async; each failure states the concrete fix | model status report | 6 | new |
+| I-029 | 2026-11-11 | One small job per fresh session; the harness verifies and writes the handover note from facts, never from the model's own summary | model status report | 5, 7 | new |
+| I-030 | 2026-11-11 | On a detected loop, end the session and restart with a factual note; a warning message alone is ignored half the time | model status report | 10 | new |
+| I-031 | 2026-11-11 | Cap reasoning length per step; 1112 produced runaway reasoning that hit the output limit | model status report | 1, 10 | new |
+| I-032 | 2026-11-11 | Pin one Jac version across training data, harness and evaluation | model status report | 13 | new |
+| I-033 | 2026-11-11 | An evaluation ladder from "one button changes one backend value" upward, three or more runs per task, always with a fixed baseline | model status report | 14 | new |

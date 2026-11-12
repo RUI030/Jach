@@ -14,6 +14,7 @@
 
 - [research/pi-harness.md](research/pi-harness.md): what the pi coding agent (1.0.4) lets an extension change
 - [research/existing-harnesses-and-model.md](research/existing-harnesses-and-model.md): jacBuilder, the removed `jac ai`, jac-mini-coder, and the fine-tuned model's format and failure modes
+- [research/model-status-2026-11-11.md](research/model-status-2026-11-11.md): browser-verified results for v1.35 and the 1112 adapter, and where they fail
 - [research/jac-cli-surface.md](research/jac-cli-surface.md): the jac 0.36.1 commands a harness would wrap
 
 ## The six layers of a harness
@@ -48,3 +49,5 @@ They are listed in the order they should be decided, because earlier ones constr
 | 10a | Admin escalation: triggers, what the admin may do, how control returns | 4, 5 | Open |
 | 11 | Build on pi or from scratch | all | Open; depends on 1 to 3 |
 | 12 | Trajectory log format | 6 | Open |
+| 13 | Which Jac version the harness, training data and evaluation all target | all | Open; blocks 6 and 8 |
+| 14 | Evaluation ladder and the definition of a pass | 5, 6 | Open |
