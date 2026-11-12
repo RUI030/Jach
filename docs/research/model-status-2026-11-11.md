@@ -114,3 +114,72 @@ The report marks these as opinion, untested, ordered by expected benefit.
 - **1113 (training):** the 625 records plus full trajectories of about 15 single-page apps (a counter button, add a row, a checkbox, a toggle, a calculator), each verified in a browser. It targets wiring. Evaluated on 14 small tasks plus the original 13.
 - The untuned base model has never been run in this harness, so it is unknown how much of the looping and hallucination comes from fine-tuning.
 - Feature-completion and error classification were reviewed by hand only for 1112.
+
+## Follow-up answers from the training side (2026-11-11)
+
+Answers to questions raised after the report. Items the training side had not measured are marked.
+
+### Reasoning text
+
+- It comes from the chat template, not the request. The original Ornith template opens `<think>` in the generation prompt. v1.35 uses its own template that forces `enable_thinking=false`: 0 of 1,216 replies had reasoning.
+- 1112 was trained and served with the original template, because the production trajectories carry thinking. Reasoning arrives in `reasoning_content`, not in the reply content.
+- All 928 replies of 1112 had reasoning. Length in characters: median 197, p90 472, p99 2,479, maximum 171,797. Training truncated reasoning at 400 characters, yet 20% of replies exceed that.
+- Four replies exceeded 20,000 characters. Five more ran to the 32,000 `max_tokens` limit and produced no action.
+- A normal reply is short: median 194 tokens, p90 410.
+- llama-server has `--reasoning-budget`, and newer builds read `reasoning_budget_tokens` per request. Whether the build in use supports it is untested.
+- Turning thinking off for 1112 would make inference differ from training.
+
+### Jac version
+
+- Whether the 405 wiring failure happens on 0.36 was **not tested** by the training side. On 0.34.28 it does: a backend module imported only by a client component is not loaded. Their guess is that it is specific to 0.34.
+- The harness runs 0.34.28 because the jacBuilder sandbox image pins it and lists only 0.34.x as supported.
+- From 0.37, `jac start` becomes `jac run --serve` and the endpoint exposure rules change, so an upgrade touches prompts, tools and skills.
+
+### Training sample length (the 625 records of 1112)
+
+| Kind | Records | Median tokens | Range |
+|---|---|---|---|
+| Production, main flow | 254 | 64.7k | 16.5k to 65.5k (p25 is already 63.1k) |
+| Production, planning | 160 | 15.0k | 11.2k to 26.4k |
+| UI replay, main flow | 42 | not counted per record | 42k to 65k |
+| UI replay, planning | 54 | not counted per record | 16k to 21k |
+| Synthetic fixes | 115 | about 23k | about 21k to 35k (estimated from characters, ±2k) |
+
+- Production main-flow records are the oldest history cut away until the record just fits the limit.
+- Tokens that carry loss are only **7%** of the production data.
+
+### Hardware and speed
+
+- NVIDIA RTX PRO 5000 Blackwell, 48 GB.
+- Evaluation: Q8_0 GGUF, one slot, context 65,536. Training loads in 4-bit.
+- Generation: median 104 tokens per second (p10 101, p90 108).
+- Per call: prompt median about 27k tokens; latency median 2.2 s, p90 4.4 s.
+
+### The 11 tools
+
+`list_files`, `read_file`, `grep_search`, `load_jac_skill`, `plan_build`, `write_code`, `edit_code`, `delete_code`, `run_command`, `preview_status`, `browser_validate`.
+
+- A design choice made when building the 1112 data, not the result of an ablation. Loss was computed only on these 11; all 27 definitions were still in the prompt at inference.
+- Of 892 main-flow calls by 1112, only 7 fell outside the subset.
+
+### The LOOP DETECTED rule
+
+`check_tool_loop` in `jac_coder/runtime/events.jac`.
+
+- Covers four tools only: `run_command` (first 80 characters of the command), `write_code` (path only), `edit_code` (path plus first 50 characters of `old_string`), `delete_code`.
+- Fires when a signature appears 3 times in the last 5 calls, or the same tool hits the same file name 4 times in the last 5.
+- On firing, the call is not executed and a warning is returned. The signature is then cleared, so only every third repeat is blocked. Nothing escalates.
+- Gap: `read_file`, `load_jac_skill` and the browser tools are not checked. v1.35 loaded one skill 29 times unhindered.
+- Gap: `write_code` ignores content and outcome, so a normal write, see error, rewrite cycle is blocked on the third write with a message saying it keeps failing.
+
+### Tool-call errors
+
+| | v1.35 | 1112 |
+|---|---|---|
+| Tool calls | 1,193 | 927 |
+| Arguments not valid JSON | 6 (0.5%) | 1 (0.1%) |
+| Unknown tool name | 0 | 0 |
+| Well-formed but rejected by the tool | 216 (18%) | 48 (5%) |
+
+- Main causes of rejection in v1.35: edit with identical old and new strings 75, `old_string` not found 66, path outside the project 56.
+- "Tool call written as text" is a separate effect: at the step limit the harness asks for a text summary with `tool_choice: none`, and the model emits a tool call anyway, which then appears as raw text. This happened in 10 of 13 tasks for v1.35 and 6 of 12 for 1112.

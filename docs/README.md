@@ -51,3 +51,4 @@ They are listed in the order they should be decided, because earlier ones constr
 | 12 | Trajectory log format | 6 | Open |
 | 13 | Which Jac version the harness, training data and evaluation all target | all | Open; blocks 6 and 8 |
 | 14 | Evaluation ladder and the definition of a pass | 5, 6 | Open |
+| 15 | Which checkpoint lineage to build on, and thinking on or off with what budget | 1 | Open |

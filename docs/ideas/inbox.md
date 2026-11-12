@@ -51,3 +51,11 @@
 | I-045 | 2026-11-11 | File-level editing is probably enough; the open question is how the model locates the exact code to change, and whether the editing method matters much | R | 6 | discussing |
 | I-046 | 2026-11-11 | No general shell tool for the small model; each needed command is its own narrow tool or runs automatically | C | 6 | discussing |
 | I-047 | 2026-11-11 | Start with whole-file write plus exact search-and-replace; measure the edit failure rate before adding anything; edit-by-name on `impl` blocks is the fallback if text matching fails too often | C | 6 | discussing |
+| I-048 | 2026-11-11 | The project map reports three states for a name: exists, planned but not built, unknown. "Unknown" defaults to "you referenced it wrongly; these are available" | R, C | 6, 8 | discussing |
+| I-049 | 2026-11-11 | Separate internal names from external packages in the map; an external name is never "not built yet" | C | 6 | discussing |
+| I-050 | 2026-11-11 | New cross-file modules or public functions require amending the plan first, which is recorded and creates a task; private helpers in the same file need no amendment | C | 4, 5 | discussing |
+| I-051 | 2026-11-11 | Thinking stays on for a thinking-trained checkpoint, with a hard reasoning budget and a low `max_tokens` | training-side answers | 15 | new |
+| I-052 | 2026-11-11 | At the step limit the harness writes the summary itself and never asks the model for one | training-side answers | 10 | new |
+| I-053 | 2026-11-11 | Loop detection covers every tool, compares full arguments and the outcome, lets a write, error, rewrite cycle through, and escalates instead of repeating a warning | training-side answers | 10 | new |
+| I-054 | 2026-11-11 | The edit tool rejects a no-op (identical old and new) and, when the old text is not found, returns the nearest real lines | training-side answers | 6 | new |
+| I-055 | 2026-11-11 | Keep the fixed prompt small so far more of each training record carries loss; only 7% does in the current production data | C | 3, 12 | discussing |
