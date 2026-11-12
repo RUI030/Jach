@@ -1,6 +1,6 @@
 # 0006: Tool set
 
-- **Status:** Proposed, 2026-11-12. Not yet accepted.
+- **Status:** Accepted, 2026-11-12
 - **Layer:** tool set
 - **Builds on:** [0004](0004-sdlc-phases-and-gates.md), [0005](0005-task-format.md), [model status](../research/model-status-2026-11-11.md)
 
@@ -31,7 +31,7 @@ flowchart LR
 
 ## 2. The tools
 
-16 tools in five groups.
+17 tools in five groups.
 
 | Group | Tool | Parameters | Returns |
 |---|---|---|---|
@@ -51,6 +51,7 @@ flowchart LR
 | | `submit` | none | Runs the current gate; lists what fails |
 | | `replan` | `reason` | Returns the work to Plan |
 | | `ask` | `question` | The user's answer. Interactive mode only. |
+| | `stuck` | `reason` | Starts the escalation ladder of 0004 section 3. Allowed only after at least one failed check in the current step. |
 
 Notes on the two editing tools:
 
@@ -85,17 +86,25 @@ Notes on the two editing tools:
 | `submit` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `replan` | | | | ✓ | ✓ | ✓ |
 | `ask` | ✓ | ✓ | | | | |
+| `stuck` | | ✓ | | ✓ | ✓ | ✓ |
 
-The largest set the model sees at once is 13 (Implement).
+The largest set the model sees at once is 14 (Implement).
 
 ## 5. The admin model
 
 The admin model is not limited to this set. It also gets a shell, and may edit tests and acceptance steps (0004). Its calls are logged in the same format so they can become training data.
 
-## 6. Open points
+## 6. Decided in discussion (2026-11-12)
 
-1. **`search`.** `map` answers "where is this name". `search` is for plain text (a label, an error string). Keep it, or drop it until a need shows up?
-2. **Brief.** In this draft the model writes `brief.md` with `write` and the harness parses the sections. The alternative is a `brief` tool with one parameter per section, which cannot be malformed.
-3. **Asking for help.** Escalation is triggered only by the harness. Should the model also have a `stuck` tool to ask for the admin itself?
-4. **`install` in Implement.** Allowed here so a missing package does not force a return to Plan. Should adding a package mid-way instead require `replan`?
-5. **Repeated-call refusal.** Validate refuses a call identical to a recent failed one. This replaces the LOOP DETECTED message the model ignored in 6 of 12 tasks. The exact rule belongs to decision 10.
+- `search` stays. The brief is written with `write` and parsed by the harness. `install` is allowed in Implement. A call identical to a recent failed one is refused.
+- The model may ask for help with `stuck`. Early on, generous admin intervention is wanted because it yields better trajectories.
+- How help is used as training data (details belong to decision 12):
+
+| Part of the trajectory | In training |
+|---|---|
+| The `stuck` call | In context only; no loss. The model is not trained to ask. |
+| The failed attempts before it | In context only; no loss |
+| The admin's fix | The training target, at the state the small model actually reached |
+| An admin hint (Advise) | Removed from context, or rewritten as the model's own reasoning. No hint exists at deployment. |
+
+- The admin's fix must be expressed as small-model tool calls (`write`, `edit`). A fix made through the admin's shell is replayed in that form before it is used for training.
