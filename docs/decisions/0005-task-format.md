@@ -1,6 +1,6 @@
 # 0005: Work units and task format
 
-- **Status:** Accepted in outline, 2026-11-12. Two points open (section 6).
+- **Status:** Accepted, 2026-11-12
 - **Layer:** flow control, state and recovery
 - **Builds on:** [0004](0004-sdlc-phases-and-gates.md)
 
@@ -109,11 +109,18 @@ stateDiagram-v2
 
 ## 5. Size and context
 
+- **Context resets at each task.** Inside a task, each finished step is folded to a summary. A new task starts from the cards and the graph.
 - The limit is the context window: 262,144 tokens. No smaller cap is set by guess.
-- The harness records the tokens used by every step and task. Any later limit on task size comes from those measurements.
+- The harness records tokens used per step, per task and per feature, with the outcome (passed, stalled, escalated). The reset point and any size limit are revisited when these measurements show where success drops.
 - Known risk, to be measured and not assumed: training samples so far reach 64k tokens, so behaviour beyond that is untested.
 
-## 6. Open points
+## 6. Test-writing tasks
 
-1. **Where context resets.** Proposal: one context per task; each finished step is folded to a summary inside it; a new task starts from the cards and the graph. The alternative is a reset at every step.
-2. **Tests phase.** 0004 writes all unit tests before any body. With features, the alternative is to write each feature's tests just before that feature. Proposal: keep 0004 (all first), since the declarations are complete after Plan.
+Writing tests is also cut into tasks, with the same card. They all run in the Tests phase of 0004, before any body is written.
+
+| Field | For a test-writing task |
+|---|---|
+| Unit | One feature's tests (split further if a feature has many endpoints) |
+| `implements` | The test names |
+| `writes` | The feature's test file |
+| Check | Tests compile; each test fails now; each endpoint of the feature has at least one test |
