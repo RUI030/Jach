@@ -48,3 +48,6 @@
 | I-042 | 2026-11-11 | Write the plan as real declaration files (signatures in `.jac`, bodies later in `.impl.jac`), so `jac check` validates the plan, each body is one task, and the dependency graph is derived from code | C | 4, 5 | discussing; depends on the compiler probe |
 | I-043 | 2026-11-11 | Build a working client-to-server round trip first and fill in features after, since wiring is the most common failure | C | 4 | discussing |
 | I-044 | 2026-11-11 | The 9B model is loaded text-only, so screenshots cannot be its feedback; give it the accessibility snapshot, console errors and failed requests, and keep screenshots for the admin and the user | C | 6 | discussing |
+| I-045 | 2026-11-11 | File-level editing is probably enough; the open question is how the model locates the exact code to change, and whether the editing method matters much | R | 6 | discussing |
+| I-046 | 2026-11-11 | No general shell tool for the small model; each needed command is its own narrow tool or runs automatically | C | 6 | discussing |
+| I-047 | 2026-11-11 | Start with whole-file write plus exact search-and-replace; measure the edit failure rate before adding anything; edit-by-name on `impl` blocks is the fallback if text matching fails too often | C | 6 | discussing |
