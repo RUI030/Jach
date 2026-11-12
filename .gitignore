@@ -1,0 +1,8 @@
+.jac/
+node_modules/
+__pycache__/
+*.pyc
+.env
+.env.*
+*tok*.txt
+.DS_Store
