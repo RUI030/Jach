@@ -1,32 +1,71 @@
-# Why Do Multi-Agent LLM Systems Fail? (MAST)
+# A Failure Taxonomy for LLM Agent Systems, with Step Repetition at the Top
 
-- **Source:** https://arxiv.org/html/2503.13657
-- **Authors / org:** Mert Cemri, Melissa Z. Pan, Shuyi Yang, and 10 others (UC Berkeley)
-- **Date:** March 2025 (v3 revised 26 Oct 2025)
-- **Type:** paper
-- **Read:** main text sections 1-6 and appendices A-G (appendices H-N, including the detailed intervention case studies, were not read)
+A method note based on MAST, "Why Do Multi-Agent LLM Systems Fail?" [1].
 
-## Summary
+- **Evidence:** B. Taxonomy built from annotated traces with reported agreement and public data; most labels come from an LLM judge, and the intervention results rest on small task sets without significance tests for ChatDev.
+- **Numbers checked against the source:** yes, 2026-11-11, against the arXiv HTML (v3), main text and appendices.
 
-The paper builds an empirical taxonomy of failures in LLM agent systems. The authors annotated 1,642 execution traces from seven frameworks (ChatDev, MetaGPT, HyperAgent, AppWorld, AG2, Magentic-One, OpenManus) running on models from GPT-4o and Claude 3.7 Sonnet down to Qwen2.5-Coder-32B and CodeLlama-7b. The taxonomy was developed with grounded theory on 150+ traces by six expert annotators; three annotators reached Cohen's kappa 0.88 on a shared sample. An o1-based LLM judge was then used to label the rest (94% accuracy, kappa 0.77 against humans).
+## 1. Problem
 
-The result is 14 failure modes in three groups: system design issues, inter-agent misalignment, and task verification. The single most common mode is step repetition (15.7% of labelled failures), followed by reasoning-action mismatch (13.2%), unawareness of termination conditions (12.4%), and disobeying the task specification (11.8%). Verification failures (none, incomplete, or incorrect) add up to about 17%, and premature termination is 6.2%. Failure rates of the studied systems range from 41% to 86.7%.
+Multi-agent LLM systems often gain little over single agents on benchmarks, and aggregate success rates do not say why. The paper builds a shared vocabulary for agent-system failures, so that traces can be labelled and design changes compared by which failures they remove.
 
-The authors argue that many failures come from system design rather than model capability. Two interventions on ChatDev support this modestly: clarifying roles and workflow gave +9.4% task success, and adding a verification step tied to the high-level task objective gave +15.6%. Neither removed most failures. The authors also note that verifiers often perform only shallow checks, such as confirming that code compiles.
+## 2. Method
 
-## Key points
+This is a failure taxonomy, so this section holds the classification and the findings a design can act on.
 
-- Step repetition is the most frequent single failure mode (15.7%); not knowing when to stop is close behind (12.4%).
-- Reasoning-action mismatch (13.2%): what the agent says it will do and what it does diverge.
-- Verification that only checks compilation is a named weakness; objective-level verification helped (+15.6% on ChatDev).
-- Failure profiles differ by system: OpenManus and HyperAgent are repetition-heavy, AppWorld terminates early.
-- Kappa 0.88 between humans, 0.77 for the LLM judge: the taxonomy is usable for automated labelling of traces.
+Six experts applied grounded theory to 150 traces from five frameworks until no new modes appeared [1, §3.1]. Three annotators then refined the definitions over three rounds of five traces each, reaching an average Cohen's kappa of 0.88 in the final rounds [1, §3.2]. An o1-based judge with few-shot examples reached 94% accuracy and kappa 0.77 against human labels; without examples, 89% and 0.58 [1, §3.3, Table 2]. A human round on two systems outside the development set gave kappa 0.79 [1, §3.4]. The judge then labelled 1,642 traces [1, §3.4].
 
-## Relevance to JacKnife
+The result is 14 modes in 3 categories. Percentages are each mode's share of the failure labels across the 1,642 traces [1, Fig. 1, §4].
 
-(Our interpretation, not the source's claims.)
+| Category | Mode | Share |
+|---|---|---|
+| FC1 System design | 1.1 Disobey task specification | 11.8% |
+| | 1.2 Disobey role specification | 1.5% |
+| | 1.3 Step repetition | 15.7% |
+| | 1.4 Loss of conversation history | 2.8% |
+| | 1.5 Unaware of termination conditions | 12.4% |
+| FC2 Inter-agent misalignment | 2.1 Conversation reset | 2.2% |
+| | 2.2 Fail to ask for clarification | 6.8% |
+| | 2.3 Task derailment | 7.4% |
+| | 2.4 Information withholding | 0.85% |
+| | 2.5 Ignored other agent's input | 1.9% |
+| | 2.6 Reasoning-action mismatch | 13.2% |
+| FC3 Task verification | 3.1 Premature termination | 6.2% |
+| | 3.2 No or incomplete verification | 8.2% |
+| | 3.3 Incorrect verification | 9.1% |
 
-- Our observed loop rate (16 of 22 failed runs) is consistent with repetition being the top failure mode even for much stronger models; it is a harness-level problem to design against, not only a small-model defect.
-- "Unaware of termination conditions" argues for the harness, not the model, owning task completion via acceptance criteria.
-- Acceptance criteria should test the task objective, not only "checker passes"; shallow verification is a documented failure class.
-- The 14 modes are a ready-made label set for tagging JacKnife failed trajectories, which would let us track whether a harness change shifts the failure distribution.
+### Findings a design can act on
+
+1. **Repetition is common but not, on its own, a sign of failure.** In ChatDev, step repetition occurs in 20.0% of successful and 20.0% of failed runs; in MetaGPT, 16.7% and 22.2%. Unaware-of-termination occurs in 0% of successful runs and about 10% of failed ones in both [1, App. J.1, Table 7].
+2. **Smaller models repeat almost everywhere.** In 400 traces with open models, step repetition was labelled 97 and 99 times for CodeLlama-7b (ChatDev, MetaGPT) and 96 and 35 times for Qwen2.5-Coder-32B [1, App. I, Table 6].
+3. **Verifiers check too little.** Many verifiers only confirm that code compiles or that no TODO comments remain [1, §4, FC3].
+4. **Profiles differ by system.** AppWorld often terminates early; OpenManus and HyperAgent lean towards step repetition [1, §5.1, Fig. 4].
+
+## 3. Evidence
+
+- Failure rates of the studied systems range from 41% to 86.7% [1, §1].
+- ChatDev on ProgramDev-v0, 32 tasks: baseline 25.0%, improved role prompts 34.4%, new topology 40.6% [1, App. H.2, Table 5]. The main text reports these as +9.4% and +15.6% [1, §4].
+- The same ChatDev changes on HumanEval: 89.6% to 90.3% and 91.5% [1, Table 5].
+- AG2 MathChat on 200 GSM-Plus problems, six repetitions: with GPT-4, the improved prompt went from 84.75 ± 1.94 to 89.75 ± 1.44, and the new topology to 85.50 ± 1.18, which was not significant (Wilcoxon p = 0.4). With GPT-4o, both changes were significant (p = 0.03) [1, App. H.1, Table 5].
+
+## 4. Evidence boundaries
+
+- The +15.6 point gain is 5 of 32 tasks, with no interval or test reported.
+- The paper describes that gain two ways. The main text calls it a high-level objective verification step [1, §4]. Appendix H.2 describes a change from a DAG to a cyclic graph that ends only when the CTO agent confirms all reviews.
+- The paper says seven frameworks, but §3.4 lists eight names, including Manus [1, §1, §3.4].
+- The shares come from the LLM judge, whose recall against humans is 0.77 [1, Table 2].
+- The success/failure table (Table 7) rests on a few traces per cell. The percentages move in steps of 5 to 17 points.
+- Systems are multi-agent frameworks with role-play prompts, not a single agent under a harness-owned task state machine.
+
+## 5. What we take from it
+
+Our interpretation, not the paper's claims.
+
+- Repetition being the top mode even for strong models makes loop handling a harness responsibility, not only a small-model defect.
+- Repetition appearing as often in successful as in failed runs means a loop detector should trigger help, not declare failure.
+- "Unaware of termination" being nearly fatal supports the harness deciding when a task is done.
+- The 14 modes can serve as a label set for our failed trajectories, to see whether a harness change shifts the distribution.
+
+## Reference
+
+[1] Mert Cemri, Melissa Z. Pan, Shuyi Yang, and 10 others (UC Berkeley; Intesa Sanpaolo). *Why Do Multi-Agent LLM Systems Fail?* arXiv:2503.13657v3. <https://arxiv.org/html/2503.13657>. Data: <https://huggingface.co/datasets/mcemri/MAST-Data>. Accessed 2026-11-11.

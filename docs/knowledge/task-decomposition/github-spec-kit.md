@@ -1,37 +1,66 @@
-# Spec-Driven Development (GitHub Spec Kit, `spec-driven.md`)
+# Spec, Plan, Tasks: Templates That Constrain the Model at Each Stage
 
-- **Source:** https://github.com/github/spec-kit/blob/main/spec-driven.md
-- **Authors / org:** GitHub (spec-kit repository)
-- **Date:** undated repository document (fetched 2026-11-11 from the `main` branch)
-- **Type:** docs
-- **Read:** full text
+A method note based on GitHub Spec Kit's `spec-driven.md` [1].
 
-## Summary
+- **Evidence:** C. A product's own method document. Reliable for what the templates and commands do; it contains no measurement that the method works better.
+- **Numbers checked against the source:** yes, 2026-11-11, against the raw file on `main` (last commit to the file 3cfc81f, 2026-06-23). The only numbers are the article counts, gate thresholds, and unmeasured time estimates.
 
-The document sets out the method behind Spec Kit. Its premise is that the specification, not the code, is the maintained artefact, and code is generated from it. Three commands run a fixed sequence.
+## 1. Problem
 
-`/speckit.specify` turns a short feature description into `spec.md` in a numbered feature directory on its own branch. The spec contains user stories and acceptance criteria and deliberately excludes technology choices. `/speckit.plan` reads the spec, checks it against the project "constitution", and writes `plan.md` plus supporting files: `research.md`, `data-model.md`, a `contracts/` directory with interface definitions, and `quickstart.md` with the key validation scenarios. `/speckit.tasks` reads the plan and design files and produces `tasks.md`, an ordered task list in which tasks that can run independently are marked `[P]`.
+In ordinary development the code is the maintained artefact and specifications drift out of date. Spec-driven development inverts this: the specification is maintained and code is generated from it. The document's practical question is how to make an LLM produce specifications and plans that are complete, unambiguous and do not jump to implementation. [1, "The Power Inversion", "Template-Driven Quality"]
 
-The templates are treated as prompts that constrain the model. Notable constraints: the spec must say what and why, never how; ambiguities must be flagged with a `[NEEDS CLARIFICATION]` marker instead of guessed; each template ends with a checklist the model runs against its own output; the plan has "phase gates" (for example limits on the number of projects and on added abstraction) and any violation must be justified in a complexity-tracking section; long detail goes into separate files so the main document stays readable; and files are created in test-first order (contracts, then tests, then source).
+## 2. Method
 
-The constitution is a file of fixed project principles in nine articles. It includes library-first structure, a CLI interface per library, mandatory test-first development (tests written and seen to fail before implementation), simplicity and anti-abstraction rules, and a preference for integration tests against real services over mocks.
+Three commands run a fixed sequence, each reading the previous stage's files. [1, "Streamlining SDD with Commands"]
 
-The document makes productivity claims (minutes instead of hours for the document set) without measurements.
+| Command | Reads | Writes |
+|---|---|---|
+| `/speckit.specify` | A short feature description | A numbered feature directory on a new branch, with `spec.md`: user stories and acceptance criteria |
+| `/speckit.plan` | `spec.md`, the project constitution | `plan.md`, plus data-model, API contract, research and `quickstart.md` validation-scenario files |
+| `/speckit.tasks` | `plan.md` and, if present, data model, contracts, research | `tasks.md`, with independent tasks marked `[P]` |
 
-## Key points
+### Key decisions
 
-- Fixed pipeline: specify, plan, tasks; each stage reads the previous stage's file.
-- Requirements and implementation choices are kept in separate documents.
-- Explicit uncertainty markers replace silent guessing.
-- Self-check lists and phase gates are built into the templates.
-- Tasks are derived from contracts and data model, ordered test-first, with parallel-safe tasks marked.
+The templates are treated as prompts that constrain the model. [1, "Template-Driven Quality"]
 
-## Relevance to JacKnife
+1. **What and why, never how.** The spec template forbids tech stack, APIs and code structure.
+2. **Uncertainty is marked, not guessed.** Both templates require `[NEEDS CLARIFICATION: question]` for anything the prompt does not specify.
+3. **Checklists act as unit tests for the document.** For example: no clarification markers remain, requirements are testable, success criteria are measurable.
+4. **Phase gates before implementation.** The plan template checks, for example, at most three projects, no future-proofing, framework used directly, contracts and contract tests defined. A failed gate must be justified in a "Complexity Tracking" section.
+5. **Detail goes to separate files** so the plan stays readable.
+6. **Test-first file order.** Contracts, then tests (contract, integration, e2e, unit), then source to make them pass.
+7. **No speculative features.** Every feature must trace to a user story with acceptance criteria.
 
-(Our interpretation.)
+### Implementation details that generalise
 
-- The understand and plan states can each have one template-defined output file (requirements, then plan, then tasks). The harness validates the structure before allowing the transition.
-- An explicit "needs clarification" slot is cheap to add and gives a small model a sanctioned alternative to inventing requirements; the harness can stop and ask the user when it is non-empty.
-- Checklists a model runs on its own output are weak for a 9B model; convert as many items as possible into harness checks (file exists, each task has criteria, each criterion names a test).
-- Test-first ordering fits the state machine: write the task's test, see it fail, then implement.
-- The full Spec Kit document set is too large for a 16k budget; keep each artefact short and load only the current task plus the contract it touches.
+The "constitution" is a file of project principles in nine articles. [1, "The Nine Articles of Development"]
+
+- Article III makes test-first mandatory: no implementation before unit tests are written, approved by the user, and seen to fail.
+- Article IX prefers real databases and services over mocks, with contract tests before implementation.
+- Articles IV to VI are left for each project to define; a `/speckit.analyze` command checks a project against its own constitution. [1, "Articles IV, V & VI"]
+- Other articles cover library-first structure, a text-in text-out CLI per library, and limits on projects and abstraction layers.
+
+## 3. Evidence
+
+None measured. The document's worked example claims about 15 minutes with the commands, against an estimated 12 hours of manual documentation for the same feature [1, "Example: Building a Chat Feature"]. Neither figure comes from a measurement or a comparison of outcomes.
+
+## 4. Evidence boundaries
+
+- **Description, not evaluation.** No source here shows that specs produced this way lead to more correct code, fewer defects, or better results for any model size.
+- **The checklists are self-review.** The model runs them on its own output; the document does not say anything enforces them outside the model.
+- **Human in the loop throughout.** A person invokes each command and approves tests (Article III). An unattended small-model loop is a different setting.
+- **Document size.** The full set (spec, plan, research, data model, contracts, quickstart, tasks) is written for a frontier model with a large context; nothing addresses a tight budget.
+- **The document changes.** The constitution articles were edited as recently as June 2026; later readers should check the current file.
+
+## 5. What we take from it
+
+Our interpretation, not the document's claims.
+
+- Understand and plan can each have one template-defined output file (requirements, then plan with tasks), with the harness checking the structure before allowing the next phase.
+- An explicit "needs clarification" slot gives a small model a sanctioned alternative to inventing requirements; the harness can stop and ask when it is non-empty.
+- Self-check lists are weak for a 9B model. As many items as possible should become harness checks: the file exists, every task has criteria, every criterion names a test.
+- Test-first order fits the phase machine: write the task's test, see it fail, then implement.
+
+## Reference
+
+[1] GitHub. *Specification-Driven Development (SDD)*, `spec-driven.md` in the `github/spec-kit` repository, branch `main`, last changed in commit 3cfc81f (2026-06-23). <https://raw.githubusercontent.com/github/spec-kit/main/spec-driven.md>. Accessed 2026-11-11.

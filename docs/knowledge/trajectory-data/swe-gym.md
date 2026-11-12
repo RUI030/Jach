@@ -1,41 +1,78 @@
-# Training Software Engineering Agents and Verifiers with SWE-Gym
+# Rejection-Sampling Fine-Tuning on Real Coding Tasks, Self-Improvement, and Verifiers
 
-- **Source:** https://arxiv.org/html/2412.21139
-- **Authors / org:** Jiayi Pan, Xingyao Wang, Graham Neubig, Navdeep Jaitly, Heng Ji, Alane Suhr, Yizhe Zhang (UC Berkeley, UIUC, CMU, Apple)
-- **Date:** 2024-12 (arXiv v2 revised 2025-06)
-- **Type:** paper
-- **Read:** full text
+A method note based on SWE-Gym [1].
 
-## Summary
+- **Evidence:** B. Controlled experiments with public environments, trajectories and models; preprint (venue not checked); 11 Python repositories.
+- **Numbers checked against the source:** yes, 2026-11-11, against the arXiv HTML (v2).
 
-SWE-Gym is a training environment of 2,438 real Python tasks from 11 repositories, each with an executable environment, tests and an issue description. Building the environments took about 200 hours of annotation and the images total 6 TB.
+## 1. Problem
 
-Trajectories were sampled with two scaffolds: OpenHands, a general agent with free-form planning, and MoatlessTools, a constrained workflow agent. Teachers were GPT-4o and Claude 3.5 Sonnet at varied temperatures. Only trajectories that passed the tests were kept: 491 for OpenHands, averaging about 19 turns and 19,000 tokens.
+Open models in a general coding-agent scaffold solve almost no SWE-bench tasks. Can a few hundred teacher trajectories from real, executable tasks change that, can the student then improve on its own rollouts, and can failed rollouts be put to use? [1, §1, §4]
 
-Fine-tuning Qwen2.5-Coder-32B on those 491 raised its OpenHands resolve rate from 3.0% to 15.3% on SWE-bench Lite and from 7.0% to 20.6% on Verified. Fine-tuning also reduced the "stuck in loop" rate (same action three times in a row) and the rate of empty patches. Performance was still rising at 491 trajectories with no sign of saturation.
+## 2. Method
 
-Self-improvement behaved differently by scaffold. Adding the student's own successful OpenHands trajectories and retraining made the 32B model worse (15.3% to 8.7% on Lite). With the constrained MoatlessTools workflow, iterating rejection sampling helped the 7B model (7% to 10%) and gave the 32B model a small gain before plateauing.
+SWE-Gym is 2,438 tasks from 11 Python repositories not in SWE-bench, each with an issue, a repository snapshot, unit tests and a Docker image. Building it took about 200 annotation hours. [1, §3.1]
 
-Repeated sampling over-represents easy tasks. Capping the number of trajectories kept per task corrected this; a cap of two matched or slightly beat using everything while training faster.
+Training is rejection-sampling fine-tuning in two scaffolds: [1, §4.1-4.3]
 
-A verifier (a model trained on 2,636 balanced successful and failed trajectories to predict success) was used to pick the best of k attempts. With 16 attempts the oracle rate was 42.8% and verifier-selected rate 32.0% on Verified.
+| Scaffold | Character | Data |
+|---|---|---|
+| OpenHands CodeAct | General ReAct agent, bash and file editor, plans for itself | 491 successful trajectories from GPT-4o and Claude 3.5 Sonnet; about 19 turns and 19k tokens on average |
+| MoatlessTools | Fixed workflow, short horizon | Student's own rollouts: 30 per task at temperature 1.0, successes kept, two iterations |
 
-Limitations stated: only 11 repositories, expensive manual set-up, modest self-improvement.
+A separate outcome verifier, a 32B model, reads a trajectory and outputs YES or NO. It is used to pick one of *k* attempts. [1, §5.1]
 
-## Key points
+### Key decisions
 
-- A few hundred successful teacher trajectories already give a large gain to a model that starts near zero in the scaffold.
-- Keep only test-passing trajectories; cap per task (two worked best) to counter easy-task bias.
-- Self-generated data hurt in the open-ended scaffold and helped modestly in the constrained workflow.
-- Failed trajectories are useful for training a verifier, even though they were excluded from policy training.
-- Fine-tuning reduced loop and empty-patch rates.
+1. **Keep only test-passing trajectories.** [1, §4.1]
+2. **Cap successes per task.** Repeated sampling over-represents easy tasks; a cap of 2 was chosen, preferring trajectories with fewer rounds. [1, §4.3]
+3. **Use failures for the verifier, not the policy.** The verifier is trained on equal numbers of successes and failures. [1, §5.1.1]
 
-## Relevance to JacKnife
+### Implementation details that generalise
 
-(Our interpretation.)
+- Track "stuck in loop" (same action three times in a row) and "empty patch" (no edit made) next to resolve rate. [1, §4.1-4.2]
+- Mixing teacher and student trajectories gave a better verifier than either alone. [1, §5.1.1, Fig. 8]
 
-- Start small: a few hundred verified JacKnife-format trajectories are enough to see whether the format is learnable before investing in thousands.
-- The self-improvement result favours constrained workflows: on-policy data from a harness-owned state machine is more likely to be usable than data from a free agent loop. Still validate before mixing student trajectories into training.
-- Keep the failed trajectories. They are not policy training data here, but they train a success predictor that could later gate task completion or choose among retries.
-- Report loop rate and empty-output rate alongside task success when evaluating each fine-tune.
-- Average trajectory length here (19k tokens) already exceeds a 16k context; training examples must be rendered through the same folding the harness applies at inference.
+## 3. Evidence
+
+OpenHands, Qwen2.5-Coder-Instruct, 491 trajectories, SWE-bench Verified (500 tasks). [1, §4.2, Table 3]
+
+| Size | Resolve, zero-shot → tuned | Stuck in loop | Empty patch |
+|---|---|---|---|
+| 7B | 1.8 (±1.1) → 10.6 (±2.1) | 39.6 → 21.0 | 45.8 → 33.8 |
+| 14B | 4.0 (±1.6) → 16.4 (±2.0) | 32.1 → 21.3 | 44.9 → 14.5 |
+| 32B | 7.0 (±1.3) → 20.6 (±2.1) | 29.4 → 23.8 | 9.5 → 13.8 |
+
+- On SWE-bench Lite the 32B model went from 3.0 to 15.3. Its loop rate rose slightly there (16.7 → 18.1), and its empty-patch rate rose on Verified. [1, Table 3]
+- Performance was still rising at 491 trajectories for the 32B model (figure only). [1, §5.2, Fig. 5]
+
+**Self-improvement depends on the scaffold.** [1, §4.2-4.3, Table 4]
+
+- OpenHands: adding 868 of the 32B student's own successes to the 491 teacher trajectories dropped Lite from 15.3% to 8.7%.
+- MoatlessTools, Lite: 7B went 7.0 → 9.0 → 10.0% over two iterations; 32B (LoRA) went 19.0 → 19.7 → 19.7%. The 7B empty-patch rate fell from 56.3% to 23.3%.
+- Zero-shot, the fixed workflow was far ahead: 7% and 19% on Lite for 7B and 32B, against 1.0% and 3.0% in OpenHands.
+
+**Per-task cap**, 7B on Lite (cap 1/2/3/none): 36/62/82/172 trajectories, resolve 9.0/9.7/7.7/9.3%. [1, App., Table 6]
+
+**Verifier.** Trained on 2,636 trajectories (1,318 successes, 1,318 failures). With 16 attempts, the best-possible rate was 42.8% and the verifier-picked rate 32.0% (20.6% with one attempt). A LoRA-trained verifier beat a fully fine-tuned one at *k* = 8 (29.8 vs 27.2). [1, §5.1.1, Fig. 3]
+
+## 4. Evidence boundaries
+
+- **11 repositories, about a third of tasks from pandas.** [1, §3.3]
+- **The self-improvement comparison crosses scaffolds, sizes and training methods.** The OpenHands result is one run on Lite; the 32B MoatlessTools model used LoRA. It is not a clean ablation of on-policy data.
+- **The cap result is small.** The spread across caps is 2 points on 300 tasks, from 36-172 trajectories, with no error bars.
+- **Inference allowed 100 turns and 32k context.** [1, App. B.2]
+- **The smallest model is 7B**, fully fine-tuned.
+
+## 5. What we take from it
+
+Our interpretation, not the paper's claims.
+
+- A few hundred verified trajectories in our format are enough to test whether the format is learnable before collecting thousands.
+- Student-generated data helped only in the constrained workflow here. Our harness owns the phase machine, which is closer to MoatlessTools than to OpenHands. That favours trying on-policy data, but it must be checked against a held-out set before it is mixed in.
+- Keep failed trajectories. They are not policy data, but they can train a success predictor that ranks retries or flags when to call the admin model.
+- Report loop rate and empty-edit rate with every fine-tune, per phase. Fine-tuning moved both here, not always downward.
+
+## Reference
+
+[1] Jiayi Pan, Xingyao Wang, Graham Neubig, Navdeep Jaitly, Heng Ji, Alane Suhr, Yizhe Zhang (UC Berkeley; UIUC; CMU; Apple). *Training Software Engineering Agents and Verifiers with SWE-Gym.* arXiv:2412.21139 (v2). <https://arxiv.org/html/2412.21139>. Accessed 2026-11-11.

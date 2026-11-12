@@ -1,37 +1,89 @@
-# MetaGPT: Meta Programming for a Multi-Agent Collaborative Framework
+# A Fixed Role Pipeline with Typed Hand-off Documents
 
-- **Source:** https://arxiv.org/html/2308.00352
-- **Authors / org:** Sirui Hong, Mingchen Zhuge, Jiaqi Chen and co-authors; corresponding author Chenglin Wu (DeepWisdom, KAUST and others)
-- **Date:** 2023-08 (arXiv v7 dated 2024-11-01)
-- **Type:** paper
-- **Read:** main text (first ~100k characters of the HTML; the end of the appendix was not read)
+A method note based on MetaGPT [1].
 
-## Summary
+- **Evidence:** B. Peer-reviewed (ICLR 2024) with public code, but the software-project results rest on seven tasks scored by humans and a role ablation on two tasks; no error bars.
+- **Numbers checked against the source:** yes, 2026-11-11, against the arXiv HTML (v7), including Appendices C and D.
 
-MetaGPT encodes a software team's standard operating procedure (SOP) as a fixed sequence of role-specific prompts. The claim is that free-form multi-agent chat lets errors compound, while a pipeline with defined hand-off documents contains them.
+## 1. Problem
 
-Five roles act in order. The Product Manager writes a product requirements document (PRD). The Architect turns it into a system design: file list, data structures, interface definitions and a sequence diagram. The Project Manager breaks the design into a task list. The Engineer implements the files. The QA Engineer writes tests. Agents exchange structured documents, not conversation. A shared message pool with publish-subscribe lets each role receive only the message types it needs.
+Multi-agent systems that talk in free-form chat lose and distort information as it passes between agents, much like a game of telephone. The paper asks whether encoding a software team's standard operating procedure (SOP) as a fixed pipeline of roles, each producing a structured document, gives more workable software. [1, §1, §3.2]
 
-An "executable feedback" loop is added to the Engineer: after writing code it writes and runs unit tests and debugs against the results, for up to three retries.
+## 2. Method
 
-Results reported: pass@1 of 85.9% on HumanEval and 87.7% on MBPP, with executable feedback contributing 4.2 and 5.4 points. On the authors' SoftwareDev benchmark (70 tasks, seven used for the comparison), MetaGPT scored 3.75 on the paper's executability scale against 2.25 for ChatDev and needed 0.83 human revisions against 2.5. It used more tokens in total (about 31k versus 19k) but fewer per line of code produced. A role ablation shows that an Engineer alone scores 1.0 on executability with 10 human revisions; adding the upstream roles raises this to 4.0 with 2.5 revisions at higher cost.
+Five roles act in a fixed order. [1, §3.1, Fig. 1]
 
-Limitations stated: no UI or front-end capability, no learning across projects, and strong dependence on the backend model (GPT-4 did clearly better than GPT-3.5 or Deepseek Coder 33B).
+| Role | Produces |
+|---|---|
+| Product Manager | Product requirements document: user stories, requirement pool |
+| Architect | System design: file list, data structures, interface definitions, sequence diagram |
+| Project Manager | Task list, distributed to engineers |
+| Engineer | Code for the assigned classes and functions |
+| QA Engineer | Test cases |
 
-## Key points
+### Key decisions
 
-- A fixed procedure with typed documents between stages beats open-ended agent dialogue on their benchmarks.
-- Each stage's output has a schema (PRD, design with interfaces, task list).
-- Roles see only the messages they subscribe to.
-- Running tests and feeding results back gives a measurable gain; retries are capped at three.
-- The planning roles matter: the engineer-only ablation is much worse.
+1. **Documents, not dialogue.** Every role has a schema for its output, and agents exchange those documents. [1, §3.2]
+2. **Publish-subscribe message pool.** All documents go to a shared pool; each role subscribes to the types it needs, and acts only when all its prerequisite documents are present. [1, §3.2]
+3. **Interfaces are fixed before coding.** The Architect's interface definitions and file list are what the Engineer implements. [1, §3.1]
+4. **Executable feedback for the Engineer.** After writing code, the Engineer writes and runs unit tests and debugs against the results, up to three retries. [1, §3.3]
 
-## Relevance to JacKnife
+### Implementation details that generalise
 
-(Our interpretation.)
+- The executable feedback loop was added because earlier versions missed errors during LLM-only code review. [1, §3.3]
+- The authors list as a user-side limitation that a person cannot interrupt a running agent or restart from a chosen checkpoint. [1, App. D.1]
 
-- JacKnife's states correspond to MetaGPT's roles, with one model and a harness in place of multiple agents. What transfers is the typed hand-off: each state consumes named input files and must produce a named output file with a fixed schema.
-- Publish-subscribe is the same idea as per-state context selection: the implement state gets the task and interface definitions, not the requirements discussion.
-- The interface-definition step before coding is valuable for task splitting: tasks that share an agreed signature can be implemented and resumed independently.
-- A hard cap on debug retries (three here) is a simple loop guard that the harness should own.
-- The model-dependence finding means results with GPT-4 do not predict results with a 9B model; the SOP reduces but does not remove that gap.
+## 3. Evidence
+
+- Pass@1 with GPT-4: 85.9% on HumanEval and 87.7% on MBPP. Executable feedback added 4.2 and 5.4 points. [1, §4.2, §4.4, Fig. 4]
+- SoftwareDev is the authors' own set of 70 tasks; the comparison with ChatDev uses seven of them. [1, §4.1, App. C.1]
+
+SoftwareDev, seven tasks. Executability is a human rating from 1 (fails) to 4 (flawless); revisions count manual fixes. [1, §4.2, Table 1]
+
+| | ChatDev | MetaGPT without feedback | MetaGPT |
+|---|---|---|---|
+| Executability | 2.25 | 3.67 | 3.75 |
+| Human revisions | 2.5 | 2.25 | 0.83 |
+| Tokens | 19,292 | 24,613 | 31,255 |
+| Tokens per code line | 248.9 | 126.5 | 124.3 |
+| Total code lines | 77.5 | 194.6 | 251.4 |
+
+Role ablation, averaged over two tasks. [1, §4.4, Table 3]
+
+| Roles present | Executability | Revisions | Expense |
+|---|---|---|---|
+| Engineer only | 1.0 | 10 | $0.915 |
+| + Product Manager | 2.0 | 6.5 | $1.059 |
+| + Product Manager, Architect | 2.5 | 4.0 | $1.204 |
+| + Product Manager, Project Manager | 2.0 | 3.5 | $1.251 |
+| All four | 4.0 | 2.5 | $1.385 |
+
+Backend model, five SoftwareDev tasks. [1, App. C.2, Table 5]
+
+| Backend | Executability | Revisions |
+|---|---|---|
+| GPT-4 | 3.8 | 1.2 |
+| GPT-3.5 | 2.8 | 2.4 |
+| Deepseek Coder 33B | 1.4 | 2.6 |
+
+## 4. Evidence boundaries
+
+- **Tiny samples for the main claim.** Seven tasks for the framework comparison, two for the role ablation, five for the backend comparison. No variance is reported.
+- **Human scoring.** Executability and revisions are rated by people, and the scale is coarse.
+- **Inconsistent summaries.** Table 4 gives per-task executability averaging 3.9 for MetaGPT and 2.1 for ChatDev [1, App. C.2, Table 4], while Table 1 gives 3.75 and 2.25 for what appears to be the same comparison.
+- **The smallest backend, Deepseek Coder 33B, scored 1.4 of 4.** The pipeline did not make a weaker model produce working projects. [1, Table 5]
+- **No front-end or UI work** is supported. [1, App. D.1]
+- **The HumanEval and MBPP numbers are single-function results** and say little about the SOP itself.
+
+## 5. What we take from it
+
+Our interpretation, not the paper's claims.
+
+- What transfers to one model plus a harness is the typed hand-off: each phase reads named input documents and must produce a named output with a fixed schema that the harness can check.
+- Subscription by role is the same idea as per-phase context selection; the implement phase should get the task and the interface it touches, not the requirements discussion.
+- Agreeing interfaces before coding is what lets tasks be implemented and resumed separately.
+- The 33B result is a warning that procedure alone does not close the gap for a small model; harness-side checks have to carry more of the load.
+
+## Reference
+
+[1] Sirui Hong, Mingchen Zhuge, Jiaqi Chen, Xiawu Zheng, Yuheng Cheng, Ceyao Zhang, Jinlin Wang, Zili Wang, Steven Ka Shing Yau, Zijuan Lin, Liyang Zhou, Chenyu Ran, Lingfeng Xiao, Chenglin Wu, Jürgen Schmidhuber. *MetaGPT: Meta Programming for a Multi-Agent Collaborative Framework.* ICLR 2024. arXiv:2308.00352v7. <https://arxiv.org/html/2308.00352>. Code: <https://github.com/geekan/MetaGPT>. Accessed 2026-11-11.

@@ -1,38 +1,66 @@
-# Kiro Specs (requirements, design, tasks)
+# Requirements in EARS Sentences, Then Design, Then Dependency-Ordered Tasks
 
-- **Source:** https://kiro.dev/docs/specs/ and https://kiro.dev/docs/specs/feature-specs/
-- **Authors / org:** Kiro (AWS)
-- **Date:** undated living documentation (fetched 2026-11-11)
-- **Type:** docs
-- **Read:** both pages in full; the linked pages on task execution details and bugfix specs were not read
+A method note based on the Kiro specs documentation [1, 2, 3].
 
-## Summary
+- **Evidence:** C. Official product documentation. Reliable for what the feature does; it contains no evaluation data.
+- **Numbers checked against the source:** yes, 2026-11-11, against the raw HTML of the three pages. They contain no performance numbers.
 
-Kiro is an agentic IDE whose "spec" feature formalises feature work into three files produced in three phases, with a review point after each.
+## 1. Problem
 
-`requirements.md` holds user stories with acceptance criteria written in EARS (Easy Approach to Requirements Syntax). The pattern given is `WHEN [condition/event] THE SYSTEM SHALL [expected behavior]`; the docs' example is a form submitted with invalid data, where the system shall show validation errors beside the relevant fields. The stated benefits are that each criterion is unambiguous, testable and traceable. `design.md` holds the technical approach: architecture, component and data-flow descriptions, sequence diagrams, error handling and testing strategy. `tasks.md` holds discrete, trackable implementation tasks.
+Agentic IDEs often go straight from a chat request to code, leaving no record of what was meant to be built and no way to track progress. Kiro's "specs" formalise feature work and bug fixes into three files, produced in three phases, with tracked tasks at the end. [1, "What are specs?"]
 
-There are workflow variants. Requirements-first goes requirements, design, tasks. Design-first starts from an architecture or pseudocode and derives requirements and tasks from it, for cases with strict non-functional constraints or an existing design. Quick Spec generates all three files without approval gates, for well-understood features. An "Analyze Requirements" action checks requirements for inconsistencies, ambiguities, conflicting constraints and gaps before design starts.
+## 2. Method
 
-Bug fixes use a different first file, `bugfix.md`, which records current behaviour, expected behaviour, and behaviour that must remain unchanged, followed by root-cause analysis, a fix design, and validation that nothing else broke.
+Every spec has three files. [1, "Core Structure", "Three-Phase Workflow"]
 
-Tasks have live status (in progress, completed) and can be run one at a time or all together. When all are run, Kiro builds a dependency graph and groups independent tasks into waves; tasks in a wave run concurrently and waves run in sequence.
+| File | Holds |
+|---|---|
+| `requirements.md` (or `bugfix.md`) | User stories with acceptance criteria, or a bug analysis |
+| `design.md` | Architecture, components, sequence diagrams and data flow, error handling, testing strategy |
+| `tasks.md` | Discrete, trackable implementation tasks with live status |
 
-The pages describe the product and give no evaluation data. The exact structure of `tasks.md` and how tasks reference requirements were not on the pages read.
+### Key decisions
 
-## Key points
+1. **Acceptance criteria in EARS.** Each requirement follows `WHEN [condition/event] THE SYSTEM SHALL [expected behavior]`. The docs' example: when a user submits a form with invalid data, the system shall show validation errors beside the relevant fields. The stated benefits are clarity, testability, traceability and completeness. [2, "Requirements with EARS Notation"]
+2. **A review point after each phase.** The user reviews and comments on each document before the next is generated. [1, "Getting Started"]
+3. **Two orders, plus a fast path.** Requirements-first (requirements, design, tasks) for behaviour-driven work; design-first (design, requirements, tasks) when there are strict non-functional constraints or an existing design. Quick Spec runs all three phases without approval gates after asking clarifying questions up front. [2, "Workflow Variants"]
+4. **Analyse requirements before design.** An optional pass checks requirements for inconsistencies, ambiguities, conflicting constraints and gaps. [2, "Analyzing requirements before design"]
+5. **Bug fixes record what must not change.** `bugfix.md` has three EARS-style sections [3, "Bugfix Analysis Phase"]:
+   - current behaviour: WHEN condition THEN the system does the wrong thing;
+   - expected behaviour: WHEN condition THEN the system SHALL do the right thing;
+   - unchanged behaviour: WHEN condition THEN the system SHALL CONTINUE TO do what it does now.
 
-- Three files, three phases, a human review gate between phases (skippable for simple work).
-- Acceptance criteria use a fixed sentence pattern (EARS) so each is testable.
-- A requirements analysis pass runs before design.
-- Bug fixes get a separate template that records behaviour to preserve.
-- Task dependencies are explicit, which allows wave-based execution.
+### Implementation details that generalise
 
-## Relevance to JacKnife
+- **Bugfix design states three properties to test**: the current code shows the bug, the fixed code behaves correctly, and unchanged behaviour still holds. The generated tasks carry property-based tests for each. [3, "Design Phase", "Tasks Phase"]
+- **Wave scheduling.** When all tasks are run, Kiro builds a dependency graph from `tasks.md` and groups tasks into waves. Wave 1 is every task with no dependencies; each later wave holds tasks whose dependencies the earlier waves satisfied. Tasks in a wave run concurrently; waves run in sequence. [1, "Running tasks in parallel"]
+- Task status is shown as in progress or completed while tasks run. [1, "Task Execution"]
 
-(Our interpretation.)
+## 3. Evidence
 
-- EARS gives a fixed, short format for acceptance criteria that a small model can produce reliably and that a harness can parse: one line per criterion, each mapped to at least one test.
-- The bugfix template's "unchanged behaviour" field is worth copying into the debug state: it tells the model which existing tests must still pass.
-- A "quick" path without the full three-document flow is needed for small requests; the state machine should allow skipping design when the plan has a single task.
+None. The pages describe the product. The claim that parallel execution "cuts execution time significantly" for most feature specs [1, "Running tasks in parallel"] comes with no measurement.
+
+## 4. Evidence boundaries
+
+- **No evaluation.** Nothing shows that EARS criteria, phase gates or bugfix templates improve correctness, for any model.
+- **The task format was not on these pages.** How `tasks.md` records dependencies, and how tasks link back to requirements, is not described in the pages read.
+- **A human reviews each phase** in the default flow. Quick Spec removes the gates for well-understood features, which suggests the full flow is slow for small work.
+- **Feature availability differs by surface.** Analyze Requirements is listed for IDE and CLI only, and property-based correctness checking for the IDE only. [1, capability table]
+- **Living documentation.** The pages were last updated 4 August 2026 and 15 October 2026 and may change.
+
+## 5. What we take from it
+
+Our interpretation, not the documentation's claims.
+
+- EARS is a short, fixed sentence format for acceptance criteria that a small model can learn to produce and a harness can parse: one line per criterion, each mapped to at least one test.
+- The "unchanged behaviour" section belongs in our debug phase: it names the existing tests that must keep passing, which is exactly the regression check the harness should run after each fix.
 - Explicit task dependencies let the harness pick the next runnable task on resume without asking the model.
+- A quick path that skips design is needed when the plan has a single task.
+
+## Reference
+
+[1] Kiro. *Specs.* <https://kiro.dev/docs/specs/>. Page updated 15 Oct 2026. Accessed 2026-11-11.
+
+[2] Kiro. *Feature Specs.* <https://kiro.dev/docs/specs/feature-specs/>. Page updated 4 Aug 2026. Accessed 2026-11-11.
+
+[3] Kiro. *Bugfix Specs.* <https://kiro.dev/docs/specs/bugfix-specs/>. Page updated 4 Aug 2026. Accessed 2026-11-11.

@@ -1,36 +1,72 @@
-# Better than Your Teacher: LLM Agents that Learn from Privileged AI Feedback (LEAP)
+# Offline Correction by a Teacher with Privileged Information (LEAP)
 
-- **Source:** https://arxiv.org/html/2410.05434
-- **Authors / org:** Sanjiban Choudhury (Cornell University), Paloma Sodhi (ASAPP Research)
-- **Date:** 7 October 2024
-- **Type:** paper
-- **Read:** first ~100k characters of the HTML (main text; the final ~47k characters of appendices were not read)
+A method note based on the LEAP paper [1].
 
-## Summary
+- **Evidence:** B. Controlled comparisons and ablations on three benchmarks; single-group preprint, no variance reported.
+- **Numbers checked against the source:** yes, 2026-11-11, against the arXiv HTML (v1).
 
-LEAP is an iterative DAgger-style loop for LLM agents with one addition: the teacher is given privileged information that the student will not have at test time. In ALFWorld this is object locations and an optimal action sequence; in WebShop the target product attributes; in InterCode Bash the ground-truth command. The teacher does not act in the environment. It reads the student's trajectory, including the student's stated reason and action at each step, and writes a corrected reason and action. The corrections are added to the dataset and the student is retrained, for two to four rounds.
+## 1. Problem
 
-A central design issue is realizability. If the teacher's corrections rely on information the student cannot observe, the student cannot learn to imitate them. The teacher is therefore instructed not to reveal privileged facts and to give corrections the student could have reached from what it saw. An expert that leaned too heavily on privileged information produced much worse students than a moderate one.
+A teacher that corrects a student's trajectory step by step is solving a harder problem than the task itself, because it must reason under the same partial observability. Its feedback is then often poor. Giving the teacher information the student will not have at test time makes correction easier, but corrections that rely on that information may be impossible for the student to imitate. [1, §1, §3.1]
 
-Students are Llama3-8B with LoRA (and Llama-3.1-70B for Bash); the teacher is GPT-4o. On ALFWorld out-of-distribution tasks the student went from 65.7% (behaviour cloning) to 91.0% after one round and 91.8% after three, against 65.7% for GPT-4o acting as a ReAct agent without privileged state. On WebShop the score rose from 29.4 to 61.8, above GPT-4o's 58.4. On InterCode Bash the 8B student rose from 41.4% to 49.9%, still below GPT-4o's 71.3%. Using the 8B model as its own privileged teacher also worked on ALFWorld (65.7% to 91.8%). Plain supervised fine-tuning on corrections beat preference-based updates (96.4% against 87.1% for KTO and 74.3% for DPO, in-distribution).
+## 2. Method
 
-Improvement was not monotonic across rounds, so the authors select the best round on validation data.
+LEAP is an iterative DAgger-style loop. [1, §3.2, Algorithm 1]
 
-## Key points
+1. Train a behaviour-cloning policy π₀ on teacher demonstrations.
+2. Roll out the current student. On trajectories where it fails, give the teacher the student's history and its stated reason and action at each step, plus a privileged state.
+3. The teacher writes a corrected reason and action for each step. It does not act in the environment.
+4. Add the corrections to the dataset and retrain (SFT on the aggregate, or a preference update).
+5. Return the best iteration on validation.
 
-- The teacher corrects the student's own trajectories offline rather than acting itself.
-- Privileged information makes a teacher better than its unassisted self, so students can exceed the unassisted teacher.
-- Corrections must be reachable from the student's observations.
-- Most of the gain came in the first round.
-- Supervised fine-tuning on corrections outperformed DPO and KTO.
-- On the code-like task (Bash), the 8B student improved but stayed well below the teacher.
+Privileged state per domain: object locations, essential objects and optimal actions (ALFWorld); target product attributes, options, price and an example matching product (WebShop); the ground-truth command (InterCode Bash). [1, §3.1, §4.2-4.4]
 
-## Relevance to JacKnife
+### Key decisions
 
-(Our interpretation, not the source's claims.)
+1. **The teacher must not reveal privileged facts.** It is prompted to give reasons and actions the student could have reached from what it observed. [1, §3.1]
+2. **Correct offline, after the fact.** Collection and correction are separate steps; the teacher never drives a live run.
+3. **Correct reasons as well as actions**, so the student learns why, in its own ReAct format.
 
-- In a harness with acceptance criteria, privileged information is available for free after the fact: the eventually accepted solution, or the checker's verdict. The admin can relabel failed small-model trajectories offline with that knowledge, without running live.
-- Offline correction is cheaper than live takeover and can be batched, which separates data collection from rescue.
-- The realizability rule applies to admin prompts: corrections should cite only what the small model could see (the file content, the checker message), not knowledge of the final answer.
-- The self-teacher result suggests a low-cost experiment: the 9B model, shown the accepted solution, relabels its own failed steps.
-- Keep a validation set and select checkpoints per round; do not assume later rounds are better.
+### Implementation details that generalise
+
+- How much privileged information the teacher may use is a tuning knob with an optimum. Five teacher prompts with increasing permission were compared; success rose up to the middle setting, then fell sharply, and the most permissive teacher produced a worse student than the least permissive one. [1, §4.5, Fig. 5]
+- Plain SFT on corrections beat preference optimisation. In-distribution ALFWorld after one iteration from π₀ at 68.6%: SFT 96.4%, KTO 87.1%, DPO 74.3%. [1, §1, §4.7, Table 3]
+- Gains were not monotonic across iterations, so pick the iteration on validation. [1, §4.2]
+
+## 3. Evidence
+
+Students: Llama3-8B with LoRA (all domains) and Llama-3.1-70B (InterCode). Teacher: GPT-4o. Four iterations on ALFWorld and WebShop, two on InterCode. [1, §4.2-4.4]
+
+| Benchmark | Student π₀ | Best LEAP student | GPT-4o as ReAct agent |
+|---|---|---|---|
+| ALFWorld, out-of-distribution success | 65.7% | 91.0% (π₁), 83.6% (π₂), 91.8% (π₃) | 65.7% |
+| WebShop score | 29.4 | 51.8 (π₁), 61.8 (π₂) | 58.4 |
+| InterCode Bash, 8B student | 41.4% | 49.9% (π₁) | 71.3% |
+| InterCode Bash, 70B student | 60.3% | 71.8% (π₁) | 71.3% |
+
+[1, §4.2, Table 1; §4.3, Fig. 3; §4.4, Table 2]
+
+- Most of the gain came in iteration 1 on ALFWorld and WebShop. [1, §4.2, §4.3]
+- Using Llama3-8B as its own privileged teacher on ALFWorld gave 65.7% → 82.1% → 91.8% over two iterations. The authors conclude the privileged state "does the heavy lifting" there, and say this need not hold elsewhere. [1, §4.6, Fig. 6]
+- On InterCode the 8B student improved but stayed far below GPT-4o. The authors note that when the teacher is already strong, the student may not surpass it. [1, §4.4]
+
+## 4. Evidence boundaries
+
+- No seeds or confidence intervals. The ALFWorld OOD set is about 134 games, so a 1-point difference is 1 to 2 games.
+- The paper is internally inconsistent in places: the ALFWorld test sizes are 134/139 in the text and 136/140 in the Table 1 caption; the best WebShop score is given as both 61.4 and 61.8. [1, §4.2, §4.3]
+- The coding task is short Bash commands with a ground-truth answer, capped at 10 actions. Multi-file code changes are not tested.
+- "Better than the teacher" compares against the teacher without privileged information. On the code-like task the 8B student did not get there.
+- The authors list long rollouts and verbose teacher feedback as limitations. [1, §6]
+
+## 5. What we take from it
+
+Our interpretation, not the paper's claims.
+
+- In our harness privileged information exists after the fact: the eventually accepted solution, the checker output, the passing test. The admin can relabel failed small-model trajectories offline with it, separate from live rescue.
+- The realisability rule applies to admin prompts: a correction should cite what the small model could see (file contents, checker message), not the final answer. Otherwise it teaches nothing it can reuse.
+- The self-teacher result suggests a cheap experiment: the 9B model, shown the accepted solution, relabels its own failed steps. Whether it helps on Jac code, where our model cannot write the fix, is open; the InterCode 8B result warns against expecting much.
+- Keep a validation set and select the iteration; do not assume later rounds are better.
+
+## Reference
+
+[1] Sanjiban Choudhury (Cornell University), Paloma Sodhi (ASAPP Research). *Better than Your Teacher: LLM Agents that Learn from Privileged AI Feedback.* arXiv:2410.05434v1, October 2024. <https://arxiv.org/html/2410.05434>. Accessed 2026-11-11.

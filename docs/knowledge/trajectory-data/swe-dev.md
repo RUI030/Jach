@@ -1,39 +1,65 @@
-# SWE-Dev: Building Software Engineering Agents with Training and Inference Scaling
+# Scaling Unverified Teacher Trajectories, and Filtering Without Tests
 
-- **Source:** https://arxiv.org/html/2506.07636
-- **Authors / org:** Haoran Wang, Zhenyu Hou, Yao Wei, Jie Tang, Yuxiao Dong (Tsinghua University, Zhipu AI)
-- **Date:** 2025-06 (arXiv v2 dated 2025-06-23)
-- **Type:** paper
-- **Read:** full text
+A method note based on SWE-Dev [1].
 
-## Summary
+- **Evidence:** B. Controlled comparisons with public code, models and data; preprint; one teacher, one scaffold, most comparisons given only in figures.
+- **Numbers checked against the source:** yes, 2026-11-11, against the arXiv HTML (v2).
 
-SWE-Dev trains open models as coding agents and studies how results scale with training data and with the number of interaction rounds at inference.
+## 1. Problem
 
-Data construction starts from 240k PyPI packages, narrowed to about 10k downloaded repositories and 38k task instances from 4,413 repositories after rule-based filtering. Since most pull requests lack tests, an LLM pipeline writes them: extract repository context, write Gherkin scenarios describing expected behaviour, generate test cases from the scenarios, and optionally revise them using traceback errors. On a 26k-instance subset this yielded 2,097 fail-to-pass test functions, a low yield that the authors attribute largely to environment problems.
+Most real pull requests have no tests that check a fix, so most teacher trajectories cannot be verified by execution. The paper asks whether such unverified trajectories are still useful training data, how to filter them, how they compare with test-verified data and offline RL, and how many interaction rounds to allow at inference. [1, §1, §3]
 
-Trajectories were sampled with OpenHands using DeepSeek-V3: about 17k without execution-based evaluation and 2.3k verified correct. For the unverified set, a Llama-3.1-70B judge compared each trajectory's final patch with the reference patch and graded it identical, mostly identical, partially identical or different; only the first two grades were kept, about 65% of the set. Removing the other 35% cost little performance.
+## 2. Method
 
-Results on SWE-bench Verified: 23.4% with a 7B model (Qwen2.5-Coder base) and 36.6% with a 32B model. Resolve rate rose roughly linearly in the logarithm of the number of training trajectories; for the 7B model, 13.0% at 574 trajectories and 22.8% at 16,639. Larger models benefited more from added data.
+**Tasks.** 240k PyPI packages narrow to 10,416 downloaded repositories and 88k extracted instances. Rule-based filtering keeps 38k instances from 4,413 repositories. [1, §3.1]
 
-At inference, allowing more rounds in a single run helped: the 32B model went from 34.0% at 30 rounds to 36.6% at 75, with little gain past about 45. Extending the positional-encoding context from 32k to 160k slightly reduced the 7B model (22.8% to 21.8%).
+**Tests.** An LLM pipeline writes tests in four steps: extract code context, write Gherkin-style behaviour scenarios, generate tests from the scenarios, and optionally revise them. From 26k instances this gave 2,097 fail-to-pass test functions. With existing tests the total was 4,630. The authors attribute most failures to environment problems. [1, §3.2]
 
-Rejection-sampling fine-tuning beat two offline RL methods that also used negative trajectories, and beat a hybrid of the two approaches.
+**Trajectories.** DeepSeek-V3 in OpenHands (30 iterations, 32k tokens) produced about 17k unevaluated trajectories and 2.3k test-verified correct ones. [1, §4.1]
 
-## Key points
+**Filter without tests.** Llama-3.1-70B compares each final patch with the reference patch and grades it identical, mostly identical, partially identical or different. Only the first two grades are kept, about 65% of trajectories. [1, §5.1]
 
-- When tests are unavailable, similarity of the final patch to a reference patch (LLM-judged) is a workable filter.
-- A 7B model kept improving up to about 16k trajectories, on a log scale.
-- Plain fine-tuning on successful trajectories beat offline RL with negatives in their setting.
-- More interaction rounds help up to a point; a longer context window did not help the small model.
-- LLM test synthesis for arbitrary repositories has a low yield.
+### Key decisions
 
-## Relevance to JacKnife
+1. **Use unverified trajectories at scale**, since verified ones are scarce. [1, §5.1]
+2. **Split test generation into stages.** Merging the first three steps gave "irrelevant or incoherent" tests. [1, §3.2]
+3. **Compare against offline RL.** KTO and OREO used DeepSeek-V3 positives and negatives from DeepSeek-V3 and the student. [1, §4.3]
 
-(Our interpretation.)
+### Implementation details that generalise
 
-- For Jac tasks without runnable tests, comparing the final diff with a reference solution gives a second-tier filter; mark such trajectories as lower confidence.
-- The 7B scaling curve disagrees with R2E-Gym's early saturation for 14B. The two used different scaffolds, teachers and data; treat the saturation point as unknown and measure it with a data-size ablation.
-- The 7B model did slightly worse with a longer context. This supports staying inside the trained 16k range instead of relying on the 262k limit.
-- Set per-task turn budgets from data: gains flattened near 45 rounds here.
-- Gherkin-style scenarios as an intermediate between requirement and test fit JacKnife's acceptance-criteria format.
+- Splitting roles across models helped test synthesis: Llama-3.1-70B wrote the descriptions and Qwen-2.5-Coder-32B wrote the code. This gave 92 instances with fail-to-pass tests, against 73-83 for any single model. [1, §3.3, Table 1]
+- Trajectories that did not finish within the iteration limit were removed before scaling. [1, §5.1]
+
+## 3. Evidence
+
+SWE-bench Verified, Qwen2.5-Coder base models.
+
+- **Headline:** 23.4% (7B) and 36.6% (32B). [1, Abstract, §4.2]
+- **Unverified data scales.** 7B resolve rose roughly linearly in log data size, from 13.0% at 574 trajectories to 22.8% at 16,639. The 32B model gained more from added data (figure only). [1, §5.1, Fig. 6]
+- **The patch-similarity filter costs nothing measurable.** Keeping 65% gave "nearly identical" performance to the unfiltered set (figure only). [1, §5.1, Fig. 6]
+- **Verified data is worth more per trajectory.** Rejection sampling on test-verified trajectories reached 16.2% with 1,000 and 18.0% with 2,000, "surpassing" a larger unfiltered set. [1, §4.3, Fig. 4] With all 2,300 verified trajectories, RFT reached 21.2%. [1, §4.3, Fig. 5]
+- **Offline RL lost to plain fine-tuning.** KTO reached 17.2% and OREO 17.0% with 1,800 trajectories. Every RFT+OREO split was below RFT alone. [1, §4.3, Figs. 4-5]
+- **Prompt filtering** (unevaluated trajectories): kept prompts 15.4%, discarded prompts 12.4%, SWE-Gym 13.8%, Nebius SWE-bench-extra 15.0%. [1, §3.3, Table 2]
+- **Interaction rounds.** 32B went from 34.0% at 30 rounds to 36.6% at 75; the gain from 30 to 45 was much larger than from 45 to 75 (figure only). [1, §5.2, Fig. 7]
+- **Longer RoPE context** (32k → 160k) lowered 7B from 22.8% to 21.8%; 32B showed no significant decline. [1, §5.2]
+
+## 4. Evidence boundaries
+
+- **The 16k-trajectory curve is unverified data.** It shows that more unfiltered teacher runs help a 7B model. It does not show how many verified trajectories a small model can use.
+- **The model used in the RFT and offline-RL comparisons is not named** in the text read. No error bars are reported anywhere.
+- **The offline-RL negatives were partly on-policy.** The authors suggest these on-policy negatives added noise. [1, §4.3]
+- **The test pipeline's yield is low:** 2,097 fail-to-pass functions from 26k instances.
+- **One teacher, one scaffold**, Python only.
+
+## 5. What we take from it
+
+Our interpretation, not the paper's claims.
+
+- For Jac tasks without runnable tests, a diff-similarity judgement against a reference solution is a usable second-tier filter. Such trajectories should be tagged lower confidence.
+- Verified trajectories gave more per example than unverified ones. Unverified ones still added value at volume. A mix with the verified set trained last fits both results (compare [devstral.md](devstral.md)).
+- Plain fine-tuning on good trajectories beat offline RL with mixed negatives. This fits the negative-data results in [learning-from-failure-nat.md](learning-from-failure-nat.md).
+- Behaviour-scenario descriptions between requirement and test resemble our task acceptance criteria and could be generated the same way.
+
+## Reference
+
+[1] Haoran Wang, Zhenyu Hou, Yao Wei, Jie Tang, Yuxiao Dong (Tsinghua University; Zhipu AI). *SWE-Dev: Building Software Engineering Agents with Training and Inference Scaling.* arXiv:2506.07636 (v2). <https://arxiv.org/html/2506.07636>. Code: <https://github.com/THUDM/SWE-Dev>. Accessed 2026-11-11.

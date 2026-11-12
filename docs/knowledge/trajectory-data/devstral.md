@@ -1,35 +1,72 @@
-# Devstral: Fine-tuning Language Models for Coding Agent Applications
+# Staged Trajectory Filtering and Evaluation Settings for a Small Coding-Agent Model
 
-- **Source:** https://arxiv.org/html/2509.25193v1
-- **Authors / org:** Baptiste Rozière, Graham Neubig, Gauthier Guinet, Guillaume Lample, Joachim Studnia, Kush Jain, Luyu Gao, Siddharth Gandhi, Wen-Ding Li, Xingyao Wang and contributors (Mistral AI, All Hands AI)
-- **Date:** 2025 (arXiv 2509.25193v1; the page carries an August 2025 date stamp)
-- **Type:** paper (technical report)
-- **Read:** full text
+A method note based on the Devstral technical report [1].
 
-## Summary
+- **Evidence:** D. Vendor technical report. The training recipe is described without data sizes, filter definitions or ablations; the only measured comparisons are of evaluation settings.
+- **Numbers checked against the source:** yes, 2026-11-11, against the arXiv HTML (v1).
 
-The report describes Devstral-Small, a 24B model fine-tuned from Mistral Small 3 for use inside coding-agent scaffolds, with a 128k context. It is short on quantities: it gives no trajectory counts, filter thresholds or hyperparameters. What it does describe is the shape of the training process.
+## 1. Problem
 
-Trajectories are produced by running an agent in the OpenHands CodeAct scaffold on SWE-Gym environments, with the model alternating between reasoning and actions. Final patches are checked by running unit tests. Training is staged. First the model is trained on a larger pool of rollouts that pass a heuristic quality filter. Then it is fine-tuned only on trajectories that pass the strictest filters. After that, more rollouts are generated with the fine-tuned model and used for a further "policy optimization" step whose algorithm is not specified. General natural-language data is mixed in to preserve ordinary language ability.
+How should a mid-size open model (24B) be post-trained to work inside a coding-agent scaffold? How much do evaluation settings (turn limit, retries, temperature) move the reported score? [1, §1, §3]
 
-A later version (Devstral-Small-2507) refined data generation and filtering, added "pseudo-scaffolds", and trained on both an XML prompt format and native function calling. The authors attribute the improvement mainly to data quality.
+## 2. Method
 
-Evaluation uses OpenHands at a pinned commit with only bash and file-edit tools. To cope with nondeterminism, each task gets up to three attempts (temperature 0, then 0.1 twice), which raised the resolve rate on SWE-bench Verified from 43.0% to 45.8% to 46.8% and reduced empty patches from 7.6% to 0%. Raising the turn limit from 30 to 50 took the rate from 36.8% to 46.8%; 100 turns gave no further gain. The authors note results depend on the scaffold version and the function-calling template.
+Devstral-Small is a 24B dense model based on Mistral Small 3, with 128k context. [1, §2.1]
 
-## Key points
+**Data.** An agent runs in SWE-Gym environments with the OpenHands CodeAct scaffold, alternating reasoning and actions. Unit tests decide final patch quality. Some natural-language data is mixed in to keep general ability. [1, §2.2]
 
-- Two-stage supervised training: broad, loosely filtered data first, then strictly filtered data.
-- A later round uses the fine-tuned model's own rollouts.
-- Training on more than one scaffold and tool-call format was introduced in the improved version.
-- General-purpose data is mixed in to avoid losing language ability.
-- Evaluation numbers move by several points with turn limit, retry protocol and scaffold version.
-- No data volumes or filter definitions are disclosed.
+**Post-training.** [1, §2.3]
 
-## Relevance to JacKnife
+1. Train on a larger set of rollouts that pass a first, heuristic quality filter.
+2. Fine-tune only on trajectories that pass the strictest filters.
+3. Generate new rollouts with the fine-tuned model and train further with policy optimisation (algorithm not named).
 
-(Our interpretation.)
+**Second version (Devstral-Small-2507).** The data generation and filtering were refined through ablations (not reported). "Pseudo-scaffolds" were added for generalisation across scaffolds, and training used both XML and native function-calling prompt formats. The authors credit data quality for the improvement. [1, §4]
 
-- Staged filtering is a practical answer to "quality or quantity": use loosely filtered trajectories for a first pass, then finish on the strictly verified set.
-- Devstral moved toward format diversity so the model works across scaffolds. JacKnife has the opposite goal (one harness, one format). Training on the exact JacKnife format is consistent with their observation that results depend on the template, but it will make the model brittle if the format changes; version the format and keep it stable.
-- Mix in some plain Jac question-answer and code-completion data so that harness-format training does not erode the existing Jac fine-tune.
-- Fix the evaluation protocol early (turn limit, retries, temperature, harness version) and record it with every result.
+### Key decisions
+
+1. **Broad data first, strict data last.** The loosely filtered pool supplies coverage; the strict pool sets final behaviour. [1, §2.3]
+2. **Format diversity in version 2,** aimed at working in many scaffolds. [1, §4]
+3. **A fixed evaluation harness:** OpenHands at a pinned commit, bash and file-edit tools only, built-in function-calling template, browsing off. [1, §3.1]
+
+### Implementation details that generalise
+
+- Even at temperature 0, agent runs are not deterministic, because of backend arithmetic and file-system state such as modification times. [1, §3.1]
+- The "iterative evaluation protocol" allows up to 3 attempts per task, at temperature 0, then 0.1, then 0.1, preferring later solutions. [1, §3.1]
+
+## 3. Evidence
+
+All on SWE-bench Verified (500 tasks), with no error bars.
+
+| Setting | Resolve rate | Source |
+|---|---|---|
+| Max 30 / 50 / 100 iterations (with retries) | 36.8% / 46.8% / 46.8% | [1, §3.3.1, Table 1] |
+| Attempt 1 / up to 2 / up to 3 | 43.0% / 45.8% / 46.8% | [1, §3.4.1, Table 3] |
+| Empty patches after attempt 1 / 2 / 3 | 7.6% / 0.0% / 0.0% | [1, Table 3] |
+| Pass@1 at T = 0.1 / 0.4 / 0.7 / 1.0 (100 iterations, no retries) | 43.2 / 42.4 / 43.2 / 43.6% | [1, §3.4, Table 2] |
+| Pass@4 at the same temperatures | 62.0 / 62.2 / 59.4 / 60.4% | [1, Table 2] |
+
+- Attempts 2 and 3 ran on 191 and 121 instances. [1, Table 3]
+- The authors found it "counter-intuitive" that lower temperatures scaled better with *k* than higher ones. [1, §3.4]
+- Results for version 2 are shown only in a figure. [1, §4, Fig. 4]
+
+## 4. Evidence boundaries
+
+- **No trajectory counts, filter definitions, mixture ratios or training hyperparameters are given.** The staged recipe cannot be reproduced or checked from the report.
+- **No ablation shows that staging helps.** The claim that data quality drove version 2's gain is not backed by a reported comparison.
+- **The headline protocol is not pass@1.** It allows up to three attempts.
+- **The comparison figures against other models** use reported numbers from different scaffolds. [1, §3.2, Fig. 2]
+- **The model is 24B.**
+
+## 5. What we take from it
+
+Our interpretation, not the paper's claims.
+
+- The most reliable content is about evaluation. A 10-point swing from the turn limit alone means our evaluation protocol (turn budget per phase, retries, temperature, harness version, fold settings) must be fixed and recorded with every result.
+- Staged filtering is a reasonable default for mixing loosely and strictly verified trajectories. It is plausible, not demonstrated, and is consistent with SWE-Dev's finding that unverified data helps at volume ([swe-dev.md](swe-dev.md)).
+- Devstral trained on several formats so the model would work in many scaffolds. We have one harness and one format, so format diversity is not a goal for us. A stable, versioned format is.
+- Plain Jac data should be mixed in so harness training does not erode the existing Jac fine-tune. This report only states the practice; the evidence for it is in Agent-FLAN ([agent-flan.md](agent-flan.md)).
+
+## Reference
+
+[1] Baptiste Rozière, Graham Neubig, Gauthier Guinet, Guillaume Lample, Joachim Studnia, Kush Jain, Luyu Gao, Siddharth Gandhi, Wen-Ding Li, Xingyao Wang, and contributors (Mistral AI; All Hands AI). *Devstral: Fine-tuning Language Models for Coding Agent Applications.* arXiv:2509.25193 (v1). <https://arxiv.org/html/2509.25193v1>. Accessed 2026-11-11.

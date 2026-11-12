@@ -1,42 +1,59 @@
-# Writing Effective Tools for Agents - with Agents
+# Designing Tools for Agents with an Evaluation Loop
 
-- **Source:** https://www.anthropic.com/engineering/writing-tools-for-agents
-- **Authors / org:** Ken Aizawa and contributors (Anthropic)
-- **Date:** 11 September 2025
-- **Type:** engineering blog
-- **Read:** full text
+A method note based on Anthropic's "Writing effective tools for agents" [1].
 
-## Summary
+- **Evidence:** D. Vendor engineering blog about Claude models; results are shown only as unlabelled charts and anecdotes, with no controlled comparison in the text.
+- **Numbers checked against the source:** yes, 2026-11-11, against the raw HTML of the post. It contains very few numbers.
 
-The post describes how Anthropic develops tools for agents and what properties make tools work. It is written about Claude models, not small models, and most claims are qualitative.
+## 1. Problem
 
-The process is evaluation-driven. Build a quick prototype of the tools, then write realistic multi-step tasks with verifiable outcomes, run the agent on them, and record accuracy, runtime, number of tool calls, tokens and tool errors. Read the transcripts to see where the agent is confused: many redundant calls suggest missing pagination or limits; frequent invalid-parameter errors suggest unclear descriptions or missing examples. Use a held-out task set to avoid overfitting the tools to the evaluation.
+A tool is a contract between deterministic software and a non-deterministic agent. Tools written like ordinary APIs, one per endpoint, returning everything, waste the agent's context and invite wrong calls. The post describes how Anthropic builds and tunes tools so that agents use them well. [1, "What is a tool?"]
 
-The design principles:
+## 2. Method
 
-- Choose few, purposeful tools rather than one per API endpoint. Prefer a search tool to a list-everything tool, and merge common multi-step sequences into one tool. Overlapping tools distract the agent.
-- Namespace tools with consistent prefixes so their boundaries are clear.
-- Return meaningful context. Human-readable names beat opaque identifiers; replacing arbitrary IDs with natural-language names or simple indexed IDs reduced hallucination in their tests.
-- Let the agent pick verbosity with a response-format parameter. In their example a detailed response was 206 tokens and a concise one 72.
-- Bound output with pagination, filtering and truncation and say when output was truncated and how to narrow the request. Claude Code caps tool responses at 25,000 tokens.
-- Make error messages actionable: state what was wrong and show a correctly formatted input instead of a code or a traceback.
-- Treat tool descriptions as prompts. Name parameters unambiguously (`user_id`, not `user`) and spell out formats. The post reports that small description changes produced large gains, including on SWE-bench Verified, without giving figures.
+An iterative loop: prototype the tools, write realistic evaluation tasks, run an agent on them, read the transcripts, change the tools, repeat. A held-out task set guards against tuning the tools to the evaluation. [1, "How to write tools"]
 
-## Key points
+### Key decisions
 
-- Tool quality is measured with task evaluations and transcript reading, not by inspection.
-- Fewer, higher-level tools; consolidate frequent call chains.
-- Opaque identifiers invite hallucination; return names the model can reason about.
-- Errors should say how to fix the call and show a valid example.
-- Parameter names and descriptions are part of the prompt.
-- Evidence is mostly anecdotal and specific to Claude.
+1. **Evaluate on realistic multi-step tasks with verifiable outcomes.** Strong tasks may need dozens of tool calls. Verifiers should not reject correct answers over formatting. [1, "Generating evaluation tasks"]
+2. **Measure more than accuracy.** Record runtime, number of tool calls, tokens and tool errors. Many redundant calls suggest pagination or limits are wrong; many invalid-parameter errors suggest unclear descriptions or missing examples. [1, "Running the evaluation", "Analyzing results"]
+3. **Build few tools, aimed at workflows.** Prefer `search_contacts` to `list_contacts`; merge chains that are always called together (find availability, then schedule) into one tool. Overlapping tools distract the agent. [1, "Choosing the right tools"]
+4. **Namespace tools by service and resource.** The choice between prefix and suffix schemes had sizeable, model-dependent effects in their evaluations. [1, "Namespacing your tools"]
+5. **Return meaningful context.** Drop low-level identifiers; resolving UUIDs to readable names, "or even a 0-indexed ID scheme", improved Claude's precision in retrieval tasks by reducing hallucinations. No figure is given. [1, "Returning meaningful context"]
+6. **Treat descriptions as prompts.** Name parameters unambiguously (`user_id`, not `user`), make implicit formats explicit, and enforce inputs with strict data models. [1, "Prompt-engineering your tool descriptions"]
 
-## Relevance to JacKnife
+### Implementation details that generalise
 
-(Our interpretation, not the source's claims.)
+- A `response_format` enum (`concise` or `detailed`) lets the agent choose verbosity. In their Slack example the detailed response was 206 tokens and the concise one 72. [1, "Returning meaningful context"]
+- Give large outputs pagination, range selection, filtering or truncation with sensible defaults. When truncating, say how to narrow the request. [1, "Optimizing tool responses"]
+- Error responses should state a specific, actionable fix and can show a correctly formatted input, instead of an error code or traceback. [1, "Optimizing tool responses"]
+- The response format itself (XML, JSON, Markdown) affects results; the post says the best choice depends on the model's training data and the task. [1, "Returning meaningful context"]
+- In evaluation prompts, ask the agent to write reasoning and feedback before the tool call. [1, "Running the evaluation"]
 
-- Our model "never self-corrects misuse of a tool parameter". The first fix to try is on the tool side: rename the parameter, tighten its type, and make the error show a valid call for that tool.
-- Hallucinated file paths are the identifier problem. Tools should return exact paths the model can copy, and a missing-path error should list the nearest real paths rather than only saying "not found".
-- Track tool-error rate per tool and per parameter in our run logs; a parameter that fails often is an interface defect to fix, not a model behaviour to prompt around.
-- Combine sequences the harness always wants (edit then check) into one tool so the model cannot skip or misorder them.
-- Note the tension with `stuck-in-a-loop/feedback-that-backfires.md`: show a valid example call, but do not echo the failed call.
+## 3. Evidence
+
+- Claude Code limits tool responses to 25,000 tokens by default. [1, "Optimizing tool responses"]
+- Concise against detailed response: 72 against 206 tokens, about a third. [1, "Returning meaningful context"]
+- Claude Sonnet 3.5 reached a state-of-the-art SWE-bench Verified score after refinements to tool descriptions. The post gives no figure for the change. [1, "Prompt-engineering your tool descriptions"]
+- Anecdote: Claude's web search tool kept adding "2025" to queries. A change to the tool description fixed it. [1, "Analyzing results"]
+- Held-out results for internal Slack and Asana tools are shown only as charts; their values are not in the page text. [1, "Running an evaluation"]
+
+## 4. Evidence boundaries
+
+- Every claim is about Claude models. Nothing is measured on a small or fine-tuned model.
+- No ablation separates the principles. The claims of significant or dramatic improvement come with no numbers.
+- Most of the advice came from Claude itself optimising the tools against the evaluation. [1, "Collaborating with agents"]
+- Advice on what to return (names against IDs) assumes the model reasons well over natural language. A small model's behaviour may differ.
+
+## 5. What we take from it
+
+Our interpretation, not the post's claims.
+
+- Our model's offset misuse is the `user` against `user_id` problem. Renaming the parameter to say its base (for example `start_line`, one-based, matching the viewer) and validating it strictly is a tool fix to try before any training fix.
+- The post's tool-error rate per parameter is a cheap metric for our run logs. A parameter that fails often is an interface defect.
+- Merging call chains the harness always wants (edit, then check) into one tool removes a step the model can skip.
+- Showing a valid example in an error fits this post and SWE-agent. `../stuck-in-a-loop/feedback-that-backfires.md` warns against echoing the failed call, so show the valid form only.
+
+## Reference
+
+[1] Ken Aizawa, with contributors (Anthropic). *Writing effective tools for agents — with agents.* Anthropic Engineering blog, 11 September 2025. <https://www.anthropic.com/engineering/writing-tools-for-agents>. Accessed 2026-11-11.

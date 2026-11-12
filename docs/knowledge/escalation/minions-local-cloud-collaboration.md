@@ -1,35 +1,72 @@
-# Minions: Cost-efficient Collaboration Between On-device and Cloud Language Models
+# Strong Model Decomposes, Small Model Executes Single-Step Jobs (Minions)
 
-- **Source:** https://arxiv.org/html/2502.15964
-- **Authors / org:** Avanika Narayan, Dan Biderman, Sabri Eyuboglu, Avner May, Scott Linderman, James Zou, Christopher Ré (Stanford University; Together AI)
-- **Date:** 21 February 2025
-- **Type:** paper
-- **Read:** first ~100k characters of the HTML (main text and early appendices; the final ~59k characters were not read)
+A method note based on the Minions paper [1].
 
-## Summary
+- **Evidence:** B. Controlled comparisons and ablations across model sizes and families; single-group preprint, document QA only, costs modelled rather than billed.
+- **Numbers checked against the source:** yes, 2026-11-11, against the arXiv HTML (v1).
 
-The setting is a small local model that can read a long document for free and a cloud model that is expensive per token. Two protocols are compared on long-document question answering (finance, medical, scientific).
+## 1. Problem
 
-In Minion, the two models simply chat: the local model holds the document, the cloud model holds the question and asks for what it needs. This cuts cloud cost about 30x but recovers only 87% of the cloud model's accuracy. The authors trace the loss to two weaknesses of the small model. It handles multi-step instructions badly: splitting a compound instruction into separate requests improved its performance by about 56 points. And it degrades on long context: going from under 1K to over 65K tokens cost about 13% on a simple extraction task.
+A small local model can read a long document at no API cost; a cloud model is expensive per token. Can the two collaborate so the cloud model rarely reads the document, without losing much accuracy? Tasks are question answering over long financial, medical and scientific documents. [1, Abstract, §3]
 
-MinionS is designed around those weaknesses. The cloud model, without seeing the document, writes code that decomposes the task into single-step jobs over small chunks. The local model runs the jobs in parallel and may abstain on irrelevant chunks. The cloud model aggregates the filtered outputs and either answers or starts another round. With an 8B local model and GPT-4o this recovered 97.9% of cloud-only accuracy at 18.0% of the cost; a 3B local model reached roughly 91-93% (the paper's text and table differ slightly). At 1B the protocol recovered only about half.
+## 2. Method
 
-Ablations show a cost-quality dial: more rounds, more jobs per round and smaller chunks all help up to a point (gains reverse beyond about 16 jobs or samples per round) and all raise cloud cost. Local compute is treated as free and latency is modelled rather than measured.
+Two protocols are compared. [1, §4, §5]
 
-## Key points
+- **Minion (free chat).** The local model holds the document, the remote model holds the question, and they talk until the remote model answers.
+- **MinionS (decomposition).** A loop of three steps. [1, §5.1]
+  1. The remote model, without seeing the document, writes code that produces a list of jobs, each a single instruction paired with one chunk.
+  2. The local model runs the jobs in parallel. It may abstain; otherwise it returns JSON with explanation, citation and answer. Abstentions are discarded.
+  3. The remote model reads the filtered outputs and either answers or starts another round.
 
-- Free-form chat between a small and a large model underperforms structured decomposition.
-- Two measured small-model weaknesses: compound instructions (about 56 points) and long context (about 13%).
-- The large model never needs the full context; it writes the decomposition and aggregates.
-- 8B local model: ~98% of cloud quality at ~18% of cost. Below about 3B the scheme stops being competitive.
-- Letting the small model abstain, then filtering, is part of the protocol.
+### Key decisions
 
-## Relevance to JacKnife
+1. **Design around measured small-model weaknesses.** In free chat the remote model often gave complicated instructions over long contexts. Two micro-experiments on Llama-3.2-3B: going from 1 to 4 sub-tasks in one instruction cost 56.3 points, and growing the context from 512 to 65.5K tokens cost 13 points on a simple extraction. [1, §4, App. E.2]
+2. **Abstain, then filter.** Many jobs are irrelevant to their chunk; abstention keeps noise and tokens away from the remote model. [1, §5.1]
+3. **Cap the rounds.** After the maximum, the synthesis prompt forces a final answer. [1, §5.2]
 
-(Our interpretation, not the source's claims.)
+### Implementation details that generalise
 
-- Supports the harness-owned state machine: give the 9B model one single-step task with a short, relevant context, and let something else do decomposition and aggregation.
-- The admin can be used as planner (write the task list and acceptance criteria) without ever reading the whole repository, which keeps its token cost low.
-- Task descriptions for the small model should be single-step. If an acceptance criterion needs "do A, then B, then verify C", split it.
-- An explicit "cannot do this / not applicable" output for the small model, filtered by the harness, is preferable to forcing an answer; it is also a cheap escalation signal.
-- The domain is document QA, not coding; the specific numbers do not transfer.
+- Between rounds, carrying the whole conversation is costly. Carrying only the remote model's advice (retries) or a remote-written scratchpad are the cheaper options; scratchpad was slightly better on cost per accuracy. [1, §5.1, §6.4]
+- More decomposition helps up to a point, and every knob raises remote cost: 1 to 16 jobs per round gave up to +14 points at twice the remote prefill, and more than 16 hurt; 1 to 32 samples per job gave +7.4 points at 5× prefill, and more than 16 hurt; smaller chunks (100 pages to 5) gave +11.7 points at 2.41× prefill. [1, §6.3]
+
+## 3. Evidence
+
+Remote model GPT-4o; local Llama and Qwen2.5 models from 1B to 8B; FinanceBench (64 problems), LongHealth (400) and QASPER (500 sampled). Cost is the per-query GPT-4o bill; local compute is treated as free. [1, §6.1, App. B, Table 1]
+
+| Protocol | Local model | Macro accuracy | Cost per query |
+|---|---|---|---|
+| Remote only | none | 0.724 | $0.233 |
+| Local only | Llama-8B | 0.444 | $0 |
+| Minion | Llama-8B | 0.630 | $0.008 |
+| MinionS | Llama-8B | 0.709 | $0.042 |
+| MinionS | Llama-3B | 0.662 | $0.052 |
+| MinionS | Qwen-3B | 0.676 | $0.039 |
+
+[1, §6, Table 1]
+
+- Minion cut remote cost 30.4× and recovered 87% of remote-only accuracy. [1, Abstract]
+- MinionS with the 8B model recovered 97.9% at 18.0% of the cost (5.7× cheaper). [1, §1, §6]
+- Model size: the text gives 49.5% at 1B, 93.4% at 3B and 97.9% at 8B of remote-only accuracy, and calls 3B the point where MinionS "starts being competitive". [1, §6.2]
+- Raising Minion's maximum rounds from 1 to 5 gave +8.5 points. [1, §6.4]
+
+## 4. Evidence boundaries
+
+- Document question answering only. Nothing here involves editing code, tool use, or multi-step state that the small model must maintain.
+- Latency is modelled, not measured, and local compute is assumed free. [1, App. C, Table 1]
+- FinanceBench has 64 problems and all ablations use 128-problem subsets; no confidence intervals are given. [1, App. B]
+- The 3B figures depend on family. The text's 93.4% matches Qwen-3B in Table 1; Llama-3B reached 91.4% at higher cost (our computation from Table 1).
+- The "87%" for Minion is stated both as share of remote accuracy (abstract) and as share of the remote-local gap closed (§4); Table 1 supports the first.
+
+## 5. What we take from it
+
+Our interpretation, not the paper's claims.
+
+- Supports the harness-owned task split: give the 9B model one single-step task with short, relevant context, and let something else decompose and aggregate.
+- The admin can act as planner (task list and acceptance criteria) without reading the whole repository, keeping its cost low. That is a fourth intervention mode beside advice, rewrite and takeover.
+- An acceptance criterion of the form "do A, then B, then verify C" should be split into separate tasks. The compound-instruction drop was measured on a 3B model, not on ours, so its size for our 9B model is unknown.
+- An explicit "cannot do this" output, filtered by the harness, is preferable to forcing an answer and is itself an escalation signal.
+
+## Reference
+
+[1] Avanika Narayan, Dan Biderman, Sabri Eyuboglu, Avner May, Scott Linderman, James Zou, Christopher Ré (Stanford University; Together AI). *Minions: Cost-efficient Collaboration Between On-device and Cloud Language Models.* arXiv:2502.15964v1, February 2025. <https://arxiv.org/html/2502.15964>. Accessed 2026-11-11.

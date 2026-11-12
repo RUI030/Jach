@@ -1,26 +1,45 @@
 # Stuck in a loop
 
-Sources on why LLM agents repeat actions or stall, how existing harnesses detect it, and what responses work. It covers failure taxonomies built from annotated traces, the loop detectors shipped in three open harnesses (read from source or official docs), retry-with-reflection, and one study of why error feedback fails to stop repetition in small models. All files were written from pages fetched on 2026-11-11; each file states how much of the source was read.
+Sources on why LLM agents repeat actions or stall, how shipped harnesses detect it, and which responses help. The folder holds two failure taxonomies built from annotated traces, the loop detectors of three harnesses (read from source code or official docs), reflection between attempts, and one study of why error feedback makes small models repeat a failed call. All sources were fetched and checked on 2026-11-11.
 
-| File | One-line takeaway |
-|---|---|
-| [mast-why-multi-agent-systems-fail.md](mast-why-multi-agent-systems-fail.md) | In 1,642 annotated traces, step repetition is the most common single failure mode (15.7%); objective-level verification gave the largest fix (+15.6%). |
-| [openhands-stuck-detector.md](openhands-stuck-detector.md) | Four deterministic patterns (same action+observation x4, same action+error x3, monologue x3, A-B alternation x6) with a one-time nudge before declaring stuck. |
-| [gemini-cli-loop-detection.md](gemini-cli-loop-detection.md) | Hash-based cycle detection (period 1-5, repeated 5 times), text-chanting detection, and an LLM judge after 30 turns that needs 0.9 confidence twice. |
-| [openrouter-doom-loop-detection.md](openrouter-doom-loop-detection.md) | A response ladder (observe 2, block 3, stop 6, optional steer and escalate-to-stronger-model) with per-tool definitions of "same call". |
-| [reflexion.md](reflexion.md) | Stop on a detected stall, write a short lesson, retry with it; works with strong models and a reliable evaluator, gave nothing with a weak model or wrong tests. |
-| [empirical-study-issue-solving-failures.md](empirical-study-issue-solving-failures.md) | Agentic coders fail mostly in iterate/validate, with failed runs 3.5x longer; an expert reviewer agent recovered 22% of failed issues. |
-| [feedback-that-backfires.md](feedback-that-backfires.md) | For sub-2B models, putting the failed call in context raises the chance of repeating it; "do not repeat" does nothing, abstracted errors and decode bans help. |
+| Note | Grade | One-line takeaway |
+|---|---|---|
+| [mast-why-multi-agent-systems-fail.md](mast-why-multi-agent-systems-fail.md) | B | Step repetition is the most common of 14 failure modes (15.7% of labels), but it occurs about as often in successful runs as in failed ones. |
+| [empirical-study-issue-solving-failures.md](empirical-study-issue-solving-failures.md) | B | Agentic coders fail mostly while iterating and validating, failed runs take 3.5 times more steps, and an expert reviewer agent solved 24 of 108 failed issues. |
+| [feedback-that-backfires.md](feedback-that-backfires.md) | B | For models of 1.7B and below, the failed call's tokens in context drive repeats; abstracting the call and banning it cut loops from 29% to 4% without raising success. |
+| [reflexion.md](reflexion.md) | A | A harness rule ends a stuck attempt, the model writes a lesson, and the retry reads it; gains with strong models, none with a weak one or with wrong self-written tests. |
+| [openhands-stuck-detector.md](openhands-stuck-detector.md) | C | Four deterministic patterns over the event log, one nudge at a 3-error streak, then the run stops. |
+| [gemini-cli-loop-detection.md](gemini-cli-loop-detection.md) | C | Hash-based call cycles of length 1 to 5, text-chanting detection and a late LLM judge; one recovery turn, then stop. |
+| [openrouter-doom-loop-detection.md](openrouter-doom-loop-detection.md) | C | A configurable ladder (observe, steer, escalate to a stronger model, block, stop) with a per-tool definition of "the same call". |
 
-Related material filed elsewhere: `small-model-agents/swe-smith.md` (repetition statistics for a fine-tuned 32B agent, and scaffold mitigations that reduced repetition but not failures) and `small-model-agents/swe-agent-aci.md` (recovery probability after a failed edit).
+Related notes elsewhere: `trajectory-data/swe-smith.md` (repetition in a fine-tuned 32B agent) and `small-model-agents/swe-agent-aci.md` (recovery after a failed edit). Their numbers were not rechecked for this folder.
+
+## Detector rules compared
+
+| System | What counts as "the same" | Rule and default threshold | Response | Scope |
+|---|---|---|---|---|
+| OpenHands SDK | Valid action: tool, parsed action and thought, ids ignored. Invalid call: tool and arguments; in error streaks, validation-error type and location | Same action and observation 4 times; same failing action in more than 3 responses; 3 agent messages with no action; A-B alternation over 6 actions and 6 observations | Nudge once at an error streak of 3; stop the run (`STUCK`) on any rule | Events since the last user message, window of 20 |
+| Gemini CLI | SHA-256 of tool name and JSON arguments; 50-character text chunks | A cycle of 1 to 5 calls repeated 5 times; a text chunk seen 10 times, average gap of 250 characters or less, 5 or fewer distinct gaps; LLM judge from turn 30, confidence 0.9 or more, confirmed by a second model if available | First detection: one feedback turn; second: end the turn | Per user prompt |
+| OpenRouter SDK | All inputs after normalisation, or a per-tool `loopKey`; exact text | Streak of informed repeats; other tools in between do not reset it; text needs 4 repeats | observe at 2, block at 3, stop at 6; steer and escalate off by default | Conversation; survives save and resume |
+| Reflexion (ALFWorld) | Same action and same observation | More than 3 identical cycles, or more than 30 actions | End the attempt, write a lesson, retry | One attempt |
+| Expert-Executor | Judged by the expert model | Passive review every 25 rounds (round limit 40), plus requests from the executor | Expert advice | One issue |
+
+None of the three shipped detectors publishes an evaluation of its thresholds. The Reflexion and Expert-Executor triggers are fixed settings, also not compared against alternatives.
 
 ## Patterns across sources
 
-- Repetition is common even with frontier models. MAST ranks it first among 14 failure modes, and the issue-solving study finds agentic tools fail mainly in late iteration. It is more severe in smaller fine-tuned models (see SWE-smith: over 25% of trajectories with a 10+ step repeated sequence against under 4% for the teacher).
-- Production detectors are deterministic first. OpenHands, Gemini CLI and OpenRouter all hash or compare (tool, arguments) and count; only Gemini CLI adds an LLM judge, and only late and with a high confidence bar.
-- Thresholds in shipped harnesses are 3 to 5 identical repeats, lower for error loops than for success-looking loops. None of the three publishes an evaluation of its thresholds; they are engineering defaults.
-- Detectors differ on what counts as "the same". Gemini CLI uses exact argument hashes; OpenHands compares validation-error signatures for invalid calls; OpenRouter allows a per-tool key. Exact matching misses loops where an irrelevant field changes.
-- Responses form a ladder: tell the model, block the call, escalate to a stronger model, stop. OpenHands nudges once and then flags; OpenRouter documents the full ladder.
-- Sources disagree on whether telling the model helps. OpenHands and OpenRouter ship a "you are repeating yourself" message. The small-model study finds a "do not repeat" instruction has no effect on repeat probability, and that the failed call in context is itself the main cause.
-- Breaking the loop is not the same as solving the task. SWE-smith's scaffold mitigations and the small-model decode ban both reduced repetition without improving success; SWE-smith's authors suggest repetition may be a symptom of difficulty. The interventions that did raise success added information or capability: a reflection from a strong model (Reflexion), or an expert reviewer (Expert-Executor).
-- Self-reflection needs a capable model and a trustworthy evaluator. Reflexion gained nothing with a weak model and lost ground when its self-written tests were wrong.
+- **Repetition is common at every model size, and worse in small models.** MAST ranks step repetition first (15.7%); in its open-model appendix, step repetition is labelled 97 and 99 times for CodeLlama-7b in two settings of a 400-trace set. The issue-solving study finds agentic tools failing mostly in late iteration. Rests on MAST and the issue-solving study (B).
+- **Repetition is a symptom more than a verdict.** MAST finds step repetition about as often in successful runs (20.0%) as failed ones (20.0%) in ChatDev. In the small-model study, cutting loops from 29% to 4% left success unchanged or lower. Rests on MAST and the small-model study (B).
+- **Shipped detectors are deterministic first.** OpenHands, Gemini CLI and OpenRouter compare normalised (tool, arguments) and count. Only Gemini CLI adds an LLM judge, late and with a 0.9 bar. Rests only on grade C.
+- **Thresholds cluster at 3 to 6 repeats and are unevaluated.** OpenHands stops at the 4th repeat, Gemini CLI at the 5th, OpenRouter blocks at 3 and stops at 6, and Reflexion's rule is more than 3. Rests only on grade C, plus one fixed setting in Reflexion.
+- **Sources disagree on whether telling the model works.** OpenHands, Gemini CLI and OpenRouter all send a "you are repeating" message. In the small-model study, "do not repeat" moved repeat probability by +0.07 nats (interval includes zero), yet raised rollout success from 0.42 to 0.58. Gemini CLI's recovery message quotes the looping call, which that study found raises repeats. Rests on grade C against one B study of models up to 1.7B.
+- **What raised success added information or a stronger model.** Reflexion gained with GPT-4 lessons and not with starchat-beta. The expert reviewer solved 24 of 108 failed issues, against 7 for a single Claude 4 Sonnet agent. OpenRouter offers escalation but shows no data. Rests on A and B sources; the escalation rung is C only.
+- **Self-checking needs a trustworthy evaluator.** Reflexion lost to the baseline on MBPP (77.1 against 80.1) when 16.3% of its own test results were false passes. MAST finds verifiers that check only compilation. The issue-solving study names validation retreat, where the agent edits the test. Rests on A and B sources.
+
+## Gaps
+
+- No source measures any loop detector's precision, recall or effect on task success.
+- No study covers models between 2B and 30B, or a model fine-tuned on one language. The small-model effect at 9B is untested.
+- No source compares response policies head to head, for example nudge against block against escalation, on the same tasks.
+- No detector handles near-repeats where one argument changes each time, such as an invented file path, except through hand-written per-tool keys.
+- No source measures what a recovery message should contain beyond the small-model study's toy environment.

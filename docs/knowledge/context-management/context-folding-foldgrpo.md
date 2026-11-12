@@ -1,32 +1,79 @@
-# Scaling Long-Horizon LLM Agent via Context-Folding
+# Branch-and-Return Context Folding Trained with RL
 
-- **Source:** https://arxiv.org/abs/2510.11967 (PDF: https://arxiv.org/pdf/2510.11967, project page: https://context-folding.github.io/)
-- **Authors / org:** Weiwei Sun, Miao Lu, Zhan Ling, Kang Liu, Xuesong Yao, Yiming Yang, Jiecao Chen (ByteDance Seed, CMU, Stanford)
-- **Date:** 2025-10-13
-- **Type:** paper
-- **Read:** abstract page, project page, and sections 1-4 of the PDF (appendices not read)
+A method note based on "Scaling Long-Horizon LLM Agent via Context-Folding" [1].
 
-## Summary
+- **Evidence:** B. Controlled comparison on one base model with matched RL baselines; single-group preprint; no error bars; two benchmarks.
+- **Numbers checked against the source:** yes, 2026-11-11, against the arXiv PDF (v1) text.
 
-The agent gets two extra tools. `branch(description, prompt)` opens a separate working context for a sub-task. `return(message)` ends the branch; the harness then removes every action and observation produced inside the branch from the main thread and appends only the return message. The agent alternates between a planning state (main thread, token-heavy tool use discouraged) and an execution state (inside a branch, where creating nested branches is disabled). Because the main thread prefix is unchanged, the KV-cache is rolled back to the branch point on return.
+## 1. Problem
 
-Prompting alone is not enough, so the authors train with FoldGRPO, a GRPO variant that computes the policy on the folded context and adds token-level process rewards: a penalty of -1 on main-thread tokens once the main thread exceeds 50% of the context limit, -0.2 on a branch that an LLM judge finds went outside its assigned sub-task, and -1 on failed tool-call turns. Loss is applied only to model-generated tokens; tool observations are masked.
+A ReAct agent appends every action and observation, so a long task fills the window. Summarising when the window is full drops detail at arbitrary points. The paper asks whether an agent can fold its own history at sub-task boundaries and keep a small working context without losing accuracy. [1, §1, §2.4]
 
-The base model is Seed-OSS-36B with a 32,768-token context and up to 10 branches (327,680 tokens in total). On BrowseComp-Plus (150 held-out items) and SWE-bench Verified (500), pass@1 is 62.0% and 58.0%. The same model as a ReAct agent with a 327K window scores 47.8% and 55.2%; a summarise-when-full agent with RL scores 52.7% and 55.0%. Without RL the folding agent scores 42.0% and 49.2%, better than 32K ReAct but below 327K ReAct. After FoldGRPO the main thread averages about 8-9K tokens while over 100K are processed in total. Plain GRPO made behaviour worse on some measures (finish rate fell from 0.781 to 0.612 on SWE-bench).
+## 2. Method
 
-## Key points
+The agent gets two tools. `branch(description, prompt)` opens a separate working context for a sub-task. `return(message)` ends the branch: everything produced inside it is removed from the main thread and only the return message is appended. [1, §2.2]
 
-- Folding is aligned with sub-task boundaries, not triggered by a full window.
-- The fold summary is written by the agent itself as the `return` message.
-- Untrained, the model often fails to return from a branch or leaves heavy work in the main thread; this needed RL with shaped rewards to fix.
-- Nested branches were disabled to keep structure simple.
-- Folding beat summarisation at equal token budget in their setup; gains from RL were larger than gains from the mechanism alone.
+The paper instantiates this as plan and execute. In the main thread the agent plans and decides when to branch; token-heavy tool use there is discouraged. Inside a branch it executes, and nested branches are disabled. [1, §2.2]
 
-## Relevance to JacKnife
+The model is trained with FoldGRPO, a GRPO variant in which the policy is computed on the folded context and token-level process rewards are added to the binary outcome reward. [1, §2.3]
 
-(Our interpretation.)
+### Key decisions
 
-- A JacKnife task maps onto a branch: the task brief is the `prompt`, the task result against its acceptance criteria is the `return` message. The paper supports folding at task boundaries.
-- The observed failure modes (not returning, drifting out of scope) are the reason for a harness-owned state machine: let the harness decide when a task ends and what gets folded, instead of trusting a 9B model to call `return` correctly.
-- If fold/unfold behaviour is to be learned, it has to appear in training data in the exact harness format; the paper shows a 36B model did not do it well zero-shot.
-- A 32K working context was sufficient for SWE-bench-class tasks here; a 16k budget is tighter but in the same range, and the paper's main thread settled under 9K.
+1. **Fold at sub-task boundaries, not when the window is full.** The authors describe folding as summarisation aligned with sub-task ends, so detail is kept while it is in use. [1, §2.4]
+2. **The model writes the fold summary itself** as the `return` message. [1, §2.2]
+3. **Shape behaviour with process rewards**, because outcome reward alone produced two failures: heavy work left in the main thread, and branches never returned from. [1, §2.3.2]
+   - −1 on every main-thread token (except branch-creating turns) once the main thread passes 50% of the working-context limit.
+   - −0.2 on all tokens of a branch that an LLM judge (GPT-5-nano) finds went outside its sub-task.
+   - −1 on all tokens of a failed tool-call turn.
+4. **Only model-generated tokens are trained**; tool observations are masked from the loss. [1, §2.3.1]
+
+### Implementation details that generalise
+
+- On `return` the KV-cache is rolled back to the branch point, because the main-thread prefix is unchanged. Folding then costs no re-prefill. [1, §2.2]
+- Folding can be read as a sub-agent system whose sub-agents are created on the fly, share the main prefix and run interleaved rather than in parallel. Parallel branches scored about the same as single ones (0.613 vs 0.620 on BrowseComp-Plus). [1, §2.4, §4.5.3]
+
+## 3. Evidence
+
+Base model Seed-OSS-36B-Instruct. Folding agent: 32,768-token working context, up to 10 branches (327,680 tokens total). Summary agent: 32K with up to 10 summary sessions. All RL baselines use the same model, data and hyperparameters. Pass@1, greedy decoding, BrowseComp-Plus N=150 (held-out split), SWE-bench Verified N=500. [1, §3.1–3.3, Table 1]
+
+| Agent | Context | BC-Plus | SWE-V |
+|---|---|---|---|
+| ReAct | 32K | 0.286 | 0.436 |
+| ReAct | 327K | 0.478 | 0.552 |
+| ReAct + GRPO | 327K | 0.540 | 0.574 |
+| Summary | 32K × 10 | 0.386 | 0.488 |
+| Summary + GRPO | 32K × 10 | 0.527 | 0.550 |
+| Folding, no RL | 32K × 10 | 0.420 | 0.492 |
+| Folding + GRPO | 32K × 10 | 0.567 | 0.564 |
+| Folding + FoldGRPO | 32K × 10 | 0.620 | 0.580 |
+
+Behaviour statistics [1, §4.3, Table 2]:
+
+| Folding agent | Finish (BC / SWE) | Main-thread tokens (BC / SWE) | Scope accuracy (BC / SWE) |
+|---|---|---|---|
+| No RL | 0.806 / 0.781 | 12,195 / 47,475 | 0.774 / 0.473 |
+| + GRPO | 0.738 / 0.612 | 22,285 / 48,908 | 0.762 / 0.419 |
+| + FoldGRPO | 0.935 / 0.962 | 7,752 / 8,885 | 0.895 / 0.754 |
+
+- Plain GRPO made folding behaviour worse: lower finish rate and longer main threads. [1, Table 2]
+- With 50 questions combined into one task, the agent used 32.6 branches on average, although training allowed at most 10. [1, §4.4.2]
+
+## 4. Evidence boundaries
+
+- **On SWE-bench the gain over an RL-trained long-context ReAct is small.** 0.580 vs 0.574, from one run with no error bars. The larger gap is on BrowseComp-Plus (0.620 vs 0.540).
+- **Without RL, folding is worse than plain 327K ReAct** on both tasks. Most of the gain comes from training, not from the mechanism.
+- **The smallest model is 36B**, with 32K working context. Nothing is measured near 9B.
+- **No unfold.** Once a branch returns, its content is gone from the model's view.
+- **The scope penalty needs an external LLM judge** during training.
+
+## 5. What we take from it
+
+Our interpretation, not the paper's claims.
+
+- A JacKnife task maps onto a branch: the task brief is the prompt, the checked result is the return message. Having the harness end the task removes the "never returns" failure the paper needed RL to fix.
+- The untrained folding agent left 47K tokens in its main thread on SWE-bench. We should not expect a 9B model to fold on its own; harness-driven folding is the safer default.
+- If any fold behaviour is model-driven, it must appear in our training trajectories, and failure modes (out-of-scope work, failed tool calls) need explicit negative signal.
+
+## Reference
+
+[1] Weiwei Sun, Miao Lu, Zhan Ling, Kang Liu, Xuesong Yao, Yiming Yang, Jiecao Chen (ByteDance Seed; CMU; Stanford). *Scaling Long-Horizon LLM Agent via Context-Folding.* arXiv:2510.11967v1, 2025-10-13. <https://arxiv.org/pdf/2510.11967>. Project page: <https://context-folding.github.io/>. Accessed 2026-11-11.

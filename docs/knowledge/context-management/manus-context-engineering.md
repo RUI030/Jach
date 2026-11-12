@@ -1,38 +1,64 @@
-# Context Engineering for AI Agents: Lessons from Building Manus
+# Cache-Stable, Restorable Context for a Production Agent
 
-- **Source:** https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
-- **Authors / org:** Yichao "Peak" Ji (Manus)
-- **Date:** 2025-07-18
-- **Type:** engineering blog
-- **Read:** full text
+A method note based on the Manus context-engineering post [1].
 
-## Summary
+- **Evidence:** D. Vendor experience report from one production agent; no controlled comparisons or measurements beyond two operating figures.
+- **Numbers checked against the source:** yes, 2026-11-11, against the HTML page text.
 
-A practitioner's account of six lessons from rebuilding the Manus agent framework four times. The team chose in-context learning on frontier models over fine-tuning, so every lesson is about shaping the prompt.
+## 1. Problem
 
-1. KV-cache hit rate is treated as the most important production metric. Manus sees roughly a 100:1 input-to-output token ratio, and cached input on Claude Sonnet was priced at a tenth of uncached input ($0.30 vs $3 per million tokens). To keep the cache valid: keep the prompt prefix stable (no second-level timestamps), make the context append-only, and serialise deterministically.
-2. Do not add or remove tools mid-task. It invalidates the cache and confuses the model when earlier turns mention tools that are gone. Instead, a state machine masks token logits at decode time to allow or forbid tool groups; consistent name prefixes (`browser_`, `shell_`) make group masks simple.
-3. Use the file system as unlimited external memory. Compression must be restorable: drop a web page's body but keep its URL, drop a document but keep its path.
-4. Recite the plan. A typical task takes about 50 tool calls; rewriting a todo file pushes the goals into the most recent part of the context.
-5. Keep errors in context. Failed actions and stack traces let the model avoid repeating them; hiding them removes that evidence.
-6. Avoid few-shot ruts. Repetitive action-observation pairs make the model imitate the pattern; small structured variation in serialisation breaks this.
+Manus chose to build on in-context learning with frontier models rather than fine-tune its own model, so every improvement had to come from how the context is shaped. An agent's input grows every step while each output is a short function call, so prefill dominates latency and cost. The post shares six lessons from rebuilding the framework four times. [1, introduction, "Design Around the KV-Cache"]
 
-The author presents these as patterns that worked for Manus, not general laws.
+## 2. Method
 
-## Key points
+| Lesson | Practice |
+|---|---|
+| Design around the KV-cache | Stable prefix, append-only context, deterministic serialisation |
+| Mask, don't remove | Keep all tool definitions; restrict choice by logit masking from a state machine |
+| File system as context | Drop large content but keep a pointer that restores it |
+| Recite the plan | Rewrite a todo file so goals sit at the end of the context |
+| Keep the wrong stuff in | Leave failed actions and stack traces visible |
+| Don't get few-shotted | Add small structured variation to break repetitive patterns |
 
-- Append-only, deterministic context protects the KV-cache; any edit to earlier tokens invalidates everything after it.
-- Constrain actions by masking logits from a state machine, not by editing the tool list.
-- Compression should always leave a pointer that lets the content be restored.
-- Reciting the todo list at the end of context counters goal drift.
-- Leave failures visible; error recovery is treated as a core agent skill.
+### Key decisions
 
-## Relevance to JacKnife
+1. **KV-cache hit rate is the one metric the author would pick** for a production agent, because it drives both latency and cost. [1, "Design Around the KV-Cache"]
+2. **No timestamps in the prefix, no edits to past turns, stable key order.** A single changed token invalidates the cache from that point on. [1, "Design Around the KV-Cache"]
+3. **Do not add or remove tools mid-task.** Tool definitions sit near the front, so a change invalidates everything after them; and earlier turns that mention a missing tool confuse the model, leading to schema violations or invented actions without constrained decoding. [1, "Mask, Don't Remove"]
+4. **Compression must be restorable.** A web page body can be dropped if its URL stays; a document if its path stays. The author argues any irreversible compression is risky because one cannot predict which observation matters ten steps later. [1, "Use the File System as Context"]
+5. **Errors stay in context**, so the model shifts away from repeating the failed action. [1, "Keep the Wrong Stuff In"]
 
-(Our interpretation.)
+### Implementation details that generalise
 
-- Folding rewrites earlier tokens, so each fold invalidates the KV-cache from that point. On a local 9B model this costs latency, not money; fold in batches at phase or task boundaries instead of after every turn if prefill time matters.
-- The harness-owned state machine can enforce the allowed tools per phase by constrained decoding (grammar or logit mask) while keeping the tool definitions in the prompt constant.
-- A folded line with an id is exactly "restorable compression"; never fold without storing the full message.
-- Do not fold away the fact that a step failed. The one-line summary of a failed execution should still say that it failed and why.
-- Have the harness re-inject the current task and its acceptance criteria near the end of the context each turn.
+- Response prefill gives three function-calling modes without touching tool definitions: auto (prefill to the assistant start), required (prefill to the tool-call token), and specified (prefill to the start of the function name). [1, "Mask, Don't Remove"]
+- Consistent tool-name prefixes (`browser_`, `shell_`) let a group of tools be enforced by prefilling a prefix, without a stateful logits processor. [1, "Mask, Don't Remove"]
+- When a provider needs manual cache breakpoints, place one at least at the end of the system prompt. When self-hosting, enable prefix caching and route a session to the same worker. [1, "Design Around the KV-Cache"]
+- Repetitive action-observation pairs make the model imitate the pattern; the example is a batch of 20 resumes. Manus varies templates, phrasing and order slightly. [1, "Don't Get Few-Shotted"]
+
+## 3. Evidence
+
+- Average input-to-output token ratio in Manus: about 100:1. [1, "Design Around the KV-Cache"]
+- Claude Sonnet pricing cited: $0.30 per million cached input tokens vs $3 uncached, a 10× difference. [1, "Design Around the KV-Cache"]
+- A typical task takes about 50 tool calls. [1, "Manipulate Attention Through Recitation"]
+
+No other numbers are given. Each lesson is supported by the team's experience only.
+
+## 4. Evidence boundaries
+
+- **No measured effect for any lesson.** The author says none of it is universal truth, only what worked for Manus. [1, Conclusion]
+- **Frontier API models**, not small or fine-tuned ones. A fine-tuned model may react differently to tool masking and to repetitive context.
+- **Prices are as stated in July 2025** for one provider.
+- The claim that visible errors reduce repeats is asserted, not measured. Our own model repeats after a LOOP DETECTED message in 6 of 12 tasks, so visible failure alone was not enough there.
+
+## 5. What we take from it
+
+Our interpretation, not the paper's claims.
+
+- Each fold rewrites earlier tokens and invalidates llama.cpp's prefix cache from that point. Folding in batches at task or phase boundaries limits re-prefill.
+- The per-phase tool set can be enforced by grammar or prefill while keeping the tool definitions in the prompt constant. Changing the tool list per phase costs a cache rebuild and risks mentions of missing tools.
+- A folded line with an id is restorable compression; the full message must always be stored before folding.
+- A fold line for a failed execution must still say that it failed and why.
+
+## Reference
+
+[1] Yichao "Peak" Ji (Manus). *Context Engineering for AI Agents: Lessons from Building Manus.* Blog post, 2025-07-18. <https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus>. Accessed 2026-11-11.
