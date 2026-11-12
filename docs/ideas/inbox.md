@@ -37,15 +37,15 @@
 | I-031 | 2026-11-11 | Cap reasoning length per step; 1112 produced runaway reasoning that hit the output limit | model status report | 1, 10 | new |
 | I-032 | 2026-11-11 | Pin one Jac version across training data, harness and evaluation | model status report | 13 | new |
 | I-033 | 2026-11-11 | An evaluation ladder from "one button changes one backend value" upward, three or more runs per task, always with a fixed baseline | model status report | 14 | new |
-| I-034 | 2026-11-11 | A map tool: for a folder or the whole project, show the dependency graph (which file imports what, resolved to the actual file and function), so the model looks things up and stops inventing imports | R | 6, 8 | discussing; compiler probe running |
-| I-035 | 2026-11-11 | Make use of Jac's function signatures, strict types and the AST in tool design | R | 6 | discussing; compiler probe running |
+| I-034 | 2026-11-11 | A map tool: for a folder or the whole project, show the dependency graph (which file imports what, resolved to the actual file and function), so the model looks things up and stops inventing imports | R | 6, 8 | discussing; probe done, see research/compiler-probe-0.36.1.md |
+| I-035 | 2026-11-11 | Make use of Jac's function signatures, strict types and the AST in tool design | R | 6 | discussing; probe done, see research/compiler-probe-0.36.1.md |
 | I-036 | 2026-11-11 | Keep the fresh-session handover even though the experiment shows little gain today: when one agent fails, the next must work out the current state and continue. The model has to run alone eventually, and training should bring back instruction following and debugging | R | 5, 12 | new |
 | I-037 | 2026-11-11 | The minimum input is the user's requirement. From it the model plans which `jac create` to run, which files, their dependency graph, which functions and what each does | R | 4 | new |
 | I-038 | 2026-11-11 | The implementation plan holds a draft dependency graph, the function list with each function's purpose, and how client and server components connect | R | 4, 5 | new |
 | I-039 | 2026-11-11 | Phase order: requirement → implementation plan → implementation → `jac check` and unit tests → per-page tests → full e2e → hand back to the user | R | 4 | new |
 | I-040 | 2026-11-11 | E2E feedback through screenshots; unsure whether Playwright MCP is the right vehicle or something simpler exists | R | 6 | new |
 | I-041 | 2026-11-11 | Mid-project change requests: the model revises the implementation plan and finds the code that must change | R | 4, 5 | new |
-| I-042 | 2026-11-11 | Write the plan as real declaration files (signatures in `.jac`, bodies later in `.impl.jac`), so `jac check` validates the plan, each body is one task, and the dependency graph is derived from code | C | 4, 5 | discussing; depends on the compiler probe |
+| I-042 | 2026-11-11 | Write the plan as real declaration files (signatures in `.jac`, bodies later in `.impl.jac`), so `jac check` validates the plan, each body is one task, and the dependency graph is derived from code | C | 4, 5 | discussing; probe says workable if the harness adds a missing-impl check and an impl-type check |
 | I-043 | 2026-11-11 | Build a working client-to-server round trip first and fill in features after, since wiring is the most common failure | C | 4 | discussing |
 | I-044 | 2026-11-11 | The 9B model is loaded text-only, so screenshots cannot be its feedback; give it the accessibility snapshot, console errors and failed requests, and keep screenshots for the admin and the user | C | 6 | discussing |
 | I-045 | 2026-11-11 | File-level editing is probably enough; the open question is how the model locates the exact code to change, and whether the editing method matters much | R | 6 | discussing |
@@ -65,3 +65,11 @@
 | I-059 | 2026-11-11 | Difficulty ladder: a button on the home page that talks to the backend; then one simple page with a table or similar; then several pages. No elaborate layouts for now | R | 14 | new |
 | I-060 | 2026-11-11 | The plan lists the files each task may create or edit; a write outside that list is rejected with the list | C | 5, 6 | discussing |
 | I-061 | 2026-11-11 | The plan declares dependencies; the harness compares declared against installed and gates implementation on the match | C | 4 | discussing |
+| I-062 | 2026-11-11 | Ship our own project template: single process, one working client-to-server call. The stock web-app template does not render on 0.36.1 | compiler probe | 4, 6 | new |
+| I-063 | 2026-11-11 | Treat import warnings W1100, W1101 and W1102 as errors at write time | compiler probe | 6 | new |
+| I-064 | 2026-11-11 | Wiring check at write time: every endpoint name a client module uses must be in the entry file's import list; confirm against `/openapi.json` | compiler probe | 6 | new |
+| I-065 | 2026-11-11 | Catch `await` in non-async client code by syntax-checking the generated JavaScript | compiler probe | 6 | new |
+| I-066 | 2026-11-11 | Keep the compiler loaded in a long-lived process so a check after every write costs about 10 ms | compiler probe | 6, 11 | new |
+| I-067 | 2026-11-11 | On a parse error show only the first E0xxx and drop the cascade | compiler probe | 6 | new |
+| I-068 | 2026-11-11 | Readiness means `/static/client.js` returns 200; `/healthz` stays 200 when every page is 503 | compiler probe | 6 | new |
+| I-069 | 2026-11-11 | Feed the model the server log's source-mapped client errors as its main runtime signal | compiler probe | 6 | new |
