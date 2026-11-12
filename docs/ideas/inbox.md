@@ -59,3 +59,9 @@
 | I-053 | 2026-11-11 | Loop detection covers every tool, compares full arguments and the outcome, lets a write, error, rewrite cycle through, and escalates instead of repeating a warning | training-side answers | 10 | new |
 | I-054 | 2026-11-11 | The edit tool rejects a no-op (identical old and new) and, when the old text is not found, returns the nearest real lines | training-side answers | 6 | new |
 | I-055 | 2026-11-11 | Keep the fixed prompt small so far more of each training record carries loss; only 7% does in the current production data | C | 3, 12 | discussing |
+| I-056 | 2026-11-11 | Target Jac 0.36 | R | 13 | decided: [0003](../decisions/0003-target-jac-0-36.md) |
+| I-057 | 2026-11-11 | Installing plugins and packages is its own step or task between the implementation plan and implementation: the model proposes what it will use, installs it, then implements. This behaviour is trainable | R | 4 | new |
+| I-058 | 2026-11-11 | The model must edit or create the right files; getting the file wrong is costly | R | 5, 6 | new |
+| I-059 | 2026-11-11 | Difficulty ladder: a button on the home page that talks to the backend; then one simple page with a table or similar; then several pages. No elaborate layouts for now | R | 14 | new |
+| I-060 | 2026-11-11 | The plan lists the files each task may create or edit; a write outside that list is rejected with the list | C | 5, 6 | discussing |
+| I-061 | 2026-11-11 | The plan declares dependencies; the harness compares declared against installed and gates implementation on the match | C | 4 | discussing |
