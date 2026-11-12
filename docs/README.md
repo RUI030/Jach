@@ -4,6 +4,7 @@
 
 | Path | Contents |
 |---|---|
+| `ideas/` | Raw ideas from discussion, each tracked until it is decided, parked or dropped. See [ideas/README.md](ideas/README.md). |
 | `research/` | Facts gathered before designing. No decisions. |
 | `knowledge/` | Summaries of papers and articles, grouped by topic. See [knowledge/README.md](knowledge/README.md). |
 | `decisions/` | One file per settled decision: context, options, choice, consequences. |
