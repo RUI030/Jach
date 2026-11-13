@@ -67,9 +67,11 @@ def imports_of(path: str) -> dict {
     return found;
 }
 
-"""Wiring rule (compiler probe section 5): an endpoint the client imports must be named in the entry file's import list."""
+"""Wiring rule (compiler probe section 5): an endpoint the client imports must be named in the entry file's import list.
+Reports every missing name at once, with the full import line to write for each module."""
 def wiring(project_dir: str, entry_file: str = "main.jac") -> dict {
     entry_imports = imports_of(os.path.join(project_dir, entry_file));
+    missing: dict = {};
     for fname in sorted(os.listdir(project_dir)) {
         if not fname.endswith(".jac") or fname == entry_file or not os.path.isfile(os.path.join(project_dir, fname)) { continue; }
         for (mod, names) in imports_of(os.path.join(project_dir, fname)).items() {
@@ -78,14 +80,17 @@ def wiring(project_dir: str, entry_file: str = "main.jac") -> dict {
             src = open(mod_file).read();
             for name in names {
                 is_endpoint = re.search(r"(def|walker):pub\s+" + re.escape(name) + r"\b", src) is not None;
-                if is_endpoint and name not in entry_imports.get(mod, []) {
-                    have = ", ".join(entry_imports.get(mod, []) + [name]);
-                    text = f"check failed: WIRING `{name}` is called from {fname} but {entry_file} does not import it, so the call would return 405.\n"
-                        + f"Fix {entry_file}: import from {mod} {{ {have} }}";
-                    return {"clean": False, "text": text, "code": "WIRING", "message": f"{entry_file} does not import `{name}` from {mod}"};
+                if is_endpoint and name not in entry_imports.get(mod, []) and name not in missing.get(mod, []) {
+                    missing.setdefault(mod, []).append(name);
                 }
             }
         }
     }
-    return {"clean": True, "text": "", "code": "", "message": ""};
+    if not missing { return {"clean": True, "text": "", "code": "", "message": "", "fix": ""}; }
+    fixes = [f"import from {mod} {{ {', '.join(entry_imports.get(mod, []) + names)} }}" for (mod, names) in missing.items()];
+    listed = ", ".join([f"`{n}`" for names in missing.values() for n in names]);
+    fix = "\n".join(fixes);
+    text = f"check failed: WIRING the page calls {listed} but {entry_file} does not import them, so the calls would return 405.\n"
+        + f"{entry_file} must have this line:\n{fix}";
+    return {"clean": False, "text": text, "code": "WIRING", "message": f"{entry_file} does not import {listed}", "fix": fix};
 }

@@ -1,4 +1,5 @@
 """One walker = one session = one context (decisions 0005, 0007, 0010)."""
+import os;
 import from tree { Task, Step, Turn, Has, Then }
 import from log { RunLog }
 import from tools { SCHEMAS, run_tool }
@@ -19,6 +20,19 @@ def fold_line(t: dict) -> str {
     line = f"[{t['mid']}] {t['tool']} {t['target']} -> {t['status']}";
     if t["status"] != "ok" and (t["code"] or t["message"]) { line += f": {t['code']} {t['message']}".rstrip(); }
     return line;
+}
+
+"""What the project holds now: the file list, and the text of the files this task may write (decision 8, first form)."""
+def project_view(project_dir: str, writes: list[str]) -> str {
+    names = sorted([f for f in os.listdir(project_dir) if os.path.isfile(os.path.join(project_dir, f))]);
+    out = "The project was created from the template. Files: " + ", ".join(names) + "\nCurrent content of the files you may write:";
+    for w in writes {
+        full = os.path.join(project_dir, w);
+        if not os.path.isfile(full) { out += f"\n\n--- {w} (does not exist yet)"; continue; }
+        rows = open(full).read().rstrip("\n").split("\n");
+        out += f"\n\n--- {w}\n" + "\n".join([f"{i + 1}│ {ln}" for (i, ln) in enumerate(rows)]);
+    }
+    return out;
 }
 
 walker Session {
@@ -58,7 +72,7 @@ walker Session {
 
     can open with Task entry {
         self.writes = here.writes;
-        self.card = f"Task {here.tid}: {here.title}\nGoal: {here.goal}\nYou may write: {', '.join(here.writes)}\nStart by reading the files you need.";
+        self.card = f"Task {here.tid}: {here.title}\nGoal: {here.goal}\nYou may write: {', '.join(here.writes)}\n\n" + project_view(self.project_dir, here.writes);
         if self.guide { self.card += "\n\nReference for writing the page:\n" + self.guide; }
         here.status = "active";
         self.log.at({"session": self.sid, "task": here.tid});
