@@ -40,7 +40,6 @@ Counters reset when the step passes, and when the ladder moves (a Fresh restart 
 | 5 failures | Chosen in discussion. |
 | 3 for the same error | Existing trajectories of large models in the jacBuilder harness (870 trajectories, 612 runs of consecutive failed tool calls that ended in success): 87% were fixed after 1 failure, 97% within 2, 99% within 3. A fix that has not come by the third attempt almost never came. This is large-model data; the small model has almost no successful fixes to measure (10 of 2,082 replies). |
 | 32,000 tokens per step | Chosen in discussion. For scale: in the same data a failure-to-fix episode took a median of about 180 tokens and at most about 9,000. A task has up to four steps in one context, so four full steps would reach 128,000, twice the longest training sample (64,000). The step limit alone does not keep a task inside the trained range. |
-
 | 64,000 tokens per task | The longest sample the model has been trained on. Raised as training samples get longer. 262,144 remains the hard limit. |
 | 2,048 thinking tokens | Median reasoning is 197 characters; the longest seen is 171,797. To confirm with the training side. |
 
