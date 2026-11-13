@@ -15,7 +15,7 @@ glob MAX_FAILURES = 5;
 glob SAME_ERROR = 3;
 glob MAX_TURNS = 40;
 glob STEP_TOKENS = 32000;
-glob FULL_TEXT_CHARS = 8000;  # setting: above this the card shows outlines and the model reads
+glob FULL_TEXT_CHARS = int(os.environ.get("JACH_FULL_TEXT_CHARS", "8000"));  # setting: above this the card shows outlines and the model reads
 
 """One folded line for a turn (decision 0007 section 3)."""
 def fold_line(t: dict) -> str {

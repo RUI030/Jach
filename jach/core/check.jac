@@ -89,13 +89,18 @@ def project_files(project_dir: str) -> list[str] {
     return found;
 }
 
-"""One line saying what a Jac file declares at top level (text scan; to be replaced by the AST walk)."""
+"""What a Jac file declares at top level, with the description written above each declaration
+(text scan; to be replaced by the AST walk). First line: the file's own description."""
 def outline(path: str) -> str {
-    names: list[str] = [];
-    for m in re.finditer(r"^(async\s+)?(def|walker|node|edge|obj|enum|glob)(:pub|:priv)?\s+(\w+)", open(path).read(), re.M) {
-        names.append(f"{m.group(2)}{m.group(3) or ''} {m.group(4)}");
+    src = open(path).read();
+    head = re.match(r'\s*"""(.*?)"""', src, re.S);
+    lines: list[str] = [head.group(1).strip().split("\n")[0] if head else "(no description)"];
+    pat = r'^(?:"""((?:(?!""").)*)"""[ \t]*\n)?((?:async\s+)?(?:def|walker|node|edge|obj|enum|glob)(?::pub|:priv)?\s+\w+[^{;=\n]*)';
+    for m in re.finditer(pat, src, re.S | re.M) {
+        doc = m.group(1).strip().split("\n")[0] if m.group(1) else "(no description)";
+        lines.append(f"    {m.group(2).strip()}  : {doc}");
     }
-    return ", ".join(names) if names else "(no declarations)";
+    return "\n".join(lines);
 }
 
 """Wiring rule (compiler probe section 5): an endpoint the client imports must be named in the entry file's import list.
