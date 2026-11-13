@@ -78,3 +78,4 @@
 | I-072 | 2026-11-12 | Write the harness itself in Jac: work tree as nodes, flow as walkers, by-llm for model calls | R | 11 | discussing |
 | I-073 | 2026-11-12 | Use walkers with `report` to extract views of a run (model context, training samples, token statistics) from a graph of turn nodes; record events to an append-only JSONL file by hand. Probe on 0.36.1: `report` values come back in `.reports`, are also printed to stdout under `jac run`; the graph persists between runs; walking 5,000 turns took 2.7 s | R | 12, 11 | discussing |
 | I-074 | 2026-11-12 | `lookup` answers with an IDE-style hover card: full structure of a function, obj or node, the types it refers to, where it is used. Probe: `jac code symbol --text` and `jac code slice` give part of it | R | 6 | decided |
+| I-075 | 2026-11-12 | The admin is a large model called through an API (a Codex or Claude Opus class model), not a locally hosted one | R | 10a | decided |
