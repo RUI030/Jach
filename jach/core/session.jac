@@ -66,6 +66,7 @@ walker Session {
     has guide: str = "";
     has seen: list[str] = [];
     has states: dict = {};
+    has current: dict = {};
 
     """Build the messages for the next request: failures folded, except the newest one."""
     def view -> list[dict] {
@@ -94,7 +95,11 @@ walker Session {
         self.seen = pv["seen"];
         for w in here.writes {
             full = os.path.join(self.project_dir, w);
-            if os.path.isfile(full) { self.states[w + ":" + hashlib.md5(open(full).read().encode()).hexdigest()] = ["the start"]; }
+            if os.path.isfile(full) {
+                key0 = w + ":" + hashlib.md5(open(full).read().encode()).hexdigest();
+                self.states[key0] = ["the start"];
+                self.current[w] = key0;
+            }
         }
         if self.guide { self.card += "\n\nReference for writing the page:\n" + self.guide; }
         here.status = "active";
@@ -145,11 +150,13 @@ walker Session {
                     if call["tool"] in ["write", "edit"] and res["status"] != "refused" {
                         # Cycle rule: going back to an earlier state once is allowed and noted; a third visit is a stall.
                         key = tpath + ":" + hashlib.md5(open(os.path.join(self.project_dir, tpath)).read().encode()).hexdigest();
-                        visits = self.states.setdefault(key, []);
+                        moved = self.current.get(tpath, "") != key;
+                        self.current[tpath] = key;
+                        visits = self.states.setdefault(key, []) if moved else [];
                         if visits {
                             res["text"] += f"\nnote: {tpath} is back to its state after {visits[0]}." + (" Call submit to test it." if res["status"] == "ok" else "");
                         }
-                        visits.append(mid);
+                        if moved { visits.append(mid); }
                         if len(visits) >= 3 { cycle = True; }
                     }
                 }
