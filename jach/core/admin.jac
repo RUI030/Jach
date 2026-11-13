@@ -81,6 +81,7 @@ def takeover(log: RunLog, provider: str, project_dir: str, card: str, writes: li
     current = failure;
     for attempt in range(1, ADMIN_FAILURES + 1) {
         before = snapshot(project_dir);
+        for (name, text) in before.items() { log.event("file", "harness", {"path": name, "content": text, "note": "before admin", "attempt": attempt}); }
         prompt = admin_prompt(card, writes, current, actions);
         log.event("request", "admin", {"attempt": attempt, "prompt": prompt});
         t0 = time.time();

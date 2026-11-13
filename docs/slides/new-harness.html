@@ -1,0 +1,303 @@
+<title>New Harness Slides</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: five 16:9 frames stacked, each a white slide sized in container units so a screenshot of one frame is one slide. Single light look by choice: the frames are pasted onto white slides. */
+:root{
+  --page:#e9e7e4; --paper:#ffffff; --ink:#16181c; --muted:#5d6269; --line:#dedbd6; --soft:#f5f4f1;
+  --accent:#e8542a; --blue:#1b8fc4;
+  --ok-bg:#e6f3ea; --ok-line:#b9dcc4; --ok-ink:#1d6b3a;
+  --bad-bg:#fbe9e6; --bad-line:#f0c3bb; --bad-ink:#a8321c;
+  --plan-bg:#eceef2; --plan-ink:#4a5261;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+body{background:var(--page);color:var(--ink);font-family:var(--sans);padding-block:24px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.deck{display:flex;flex-direction:column;gap:28px;max-width:1280px;margin:0 auto}
+.slide{background:var(--paper);container-type:inline-size;border:1px solid var(--line)}
+.in{font-size:13px;padding:1.6em;display:flex;flex-direction:column;gap:1em}
+@container (min-width:900px){
+  .in{font-size:1.2cqw;aspect-ratio:16/9;padding:2.4em 3em 1.8em;gap:.95em;overflow:hidden}
+  .cols{grid-template-columns:var(--cols,1fr 1fr)!important}
+  .three{grid-template-columns:repeat(3,1fr)!important}
+}
+.kick{color:var(--accent);font-weight:600;font-size:.95em}
+h1{font-size:1.95em;line-height:1.15;margin:0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:#33373d;font-size:1.08em;margin:0;max-width:62em}
+.foot{color:var(--muted);font-size:.82em;margin-top:auto}
+.cols,.three{display:grid;grid-template-columns:1fr;gap:1em;min-height:0}
+.card{border:1px solid var(--line);border-radius:.7em;padding:1em 1.1em;min-width:0;display:flex;flex-direction:column;gap:.55em}
+.card h2{font-size:1.12em;margin:0;font-weight:700}
+.card p{margin:0}
+.note{color:var(--muted);font-size:.88em}
+.bad{background:var(--bad-bg);border-color:var(--bad-line)}
+.ok{background:var(--ok-bg);border-color:var(--ok-line)}
+.soft{background:var(--soft)}
+ul{margin:0;padding-left:1.15em;display:flex;flex-direction:column;gap:.3em}
+code,pre,.mono{font-family:var(--mono);font-variant-ligatures:none}
+code{font-size:.9em;background:var(--soft);padding:.05em .3em;border-radius:.25em}
+pre{margin:0;background:var(--soft);border-radius:.5em;padding:.8em .9em;font-size:.8em;line-height:1.45;overflow-x:auto;white-space:pre}
+.pill{display:inline-block;font-size:.72em;font-weight:600;padding:.15em .6em;border-radius:1em;vertical-align:middle;letter-spacing:.02em}
+.built{background:var(--ok-bg);color:var(--ok-ink)}
+.plan{background:var(--plan-bg);color:var(--plan-ink)}
+.lab{color:var(--blue);font-weight:600}
+.big{color:var(--accent);font-weight:700;font-size:2.3em;line-height:1;font-variant-numeric:tabular-nums}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:.35em}
+.node{border:1px solid var(--line);border-radius:.5em;padding:.5em .7em;font-weight:600;background:var(--paper);text-align:center}
+.node small{display:block;font-weight:400;color:var(--muted);font-size:.78em}
+.node.on{background:var(--ok-bg);border-color:var(--ok-line)}
+.node.hot{background:var(--bad-bg);border-color:var(--bad-line)}
+.arr{color:var(--muted);font-size:.8em;text-align:center;line-height:1.1}
+.arr b{display:block;font-weight:500;font-size:.85em}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.86em;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:.36em .5em;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:.9em}
+td.c,th.c{text-align:center}
+.yes{color:var(--ok-ink);font-weight:700}
+.row{display:flex;gap:.9em;align-items:baseline;flex-wrap:wrap}
+</style>
+
+<div class="deck">
+
+<!-- 1 -->
+<section class="slide"><div class="in">
+  <div class="kick">New Harness · 1 of 5</div>
+  <h1>The harness checks, so the model does not have to remember</h1>
+  <p class="sub">Each behaviour from the last section gets a mechanism that does not depend on the prompt being followed.</p>
+  <div class="three">
+    <div class="card">
+      <div class="note">Behaviour 1</div>
+      <h2>Repeats the same step</h2>
+      <p>A failed turn is folded to <b>one line</b> as soon as the next call is made, so the failed code is not there to copy.</p>
+      <ul>
+        <li>An identical failed call is refused</li>
+        <li>Stall rules stop the step: same error 3 times, 5 failures, a file returning to an earlier state</li>
+        <li>A stalled step goes to an admin model</li>
+      </ul>
+      <div><span class="pill built">Built</span></div>
+    </div>
+    <div class="card">
+      <div class="note">Behaviour 2</div>
+      <h2>Ignores instructions</h2>
+      <p>Rules are <b>gates</b>, not prompt text. The model saying "done" never passes one.</p>
+      <ul>
+        <li><code>jac check</code> after every write; only the first error is shown</li>
+        <li><code>submit</code> runs the app in a real browser and returns what the page shows</li>
+        <li>Code conventions exist only where a script checks them</li>
+      </ul>
+      <div><span class="pill built">Built</span></div>
+    </div>
+    <div class="card">
+      <div class="note">Behaviour 3</div>
+      <h2>Files do not connect</h2>
+      <p>After every clean write the result names the <b>import line</b> the entry file still needs.</p>
+      <pre>wrote frontend.jac
+check: clean
+todo: main.jac needs:
+import from server { list_tasks, add_task }</pre>
+      <p class="note"><code>submit</code> refused for a missing import: every run before, 0 of 10 runs after.</p>
+      <div><span class="pill built">Built</span></div>
+    </div>
+  </div>
+  <div class="card soft" style="flex-direction:row;flex-wrap:wrap;gap:.4em 2.2em">
+    <span><span class="lab">Written in Jac.</span> The work is a graph: Project → Feature → Task → Step. One walker is one session and one context.</span>
+    <span><span class="lab">Short on purpose.</span> System prompt, task card and four tool definitions: 939 tokens.</span>
+  </div>
+  <div class="foot">Jac 0.36.1, JacLLM v1.35 Q4_K_M on llama.cpp. "Built" means running today; "Designed" means decided and not yet implemented.</div>
+</div></section>
+
+<!-- 2 -->
+<section class="slide"><div class="in">
+  <div class="kick">New Harness · 2 of 5</div>
+  <h1>Flow: eight phases, and a gate the harness runs after each</h1>
+  <p class="sub">The harness moves the work from phase to phase. The model works freely inside one task; it cannot skip a gate.</p>
+  <div class="flow">
+    <div class="node">Understand<small>brief</small></div><div class="arr">→</div>
+    <div class="node">Plan<small>declarations, tasks</small></div><div class="arr">→</div>
+    <div class="node">Setup<small>template runs</small></div><div class="arr">→</div>
+    <div class="node">Tests<small>fail first</small></div><div class="arr">→</div>
+    <div class="node on">Implement<small>one task at a time</small></div><div class="arr">→</div>
+    <div class="node">Page test<small>pages render</small></div><div class="arr">→</div>
+    <div class="node">E2E<small>user flows</small></div><div class="arr">→</div>
+    <div class="node">Deliver<small>clean start</small></div>
+  </div>
+  <div class="cols" style="--cols:1.25fr 1fr">
+    <div class="card">
+      <div class="row"><h2>Inside one task</h2><span class="pill built">Built</span></div>
+      <div class="flow">
+        <div class="node">Card<small>harness</small></div><div class="arr">→</div>
+        <div class="node">Write<small>model</small></div><div class="arr">→</div>
+        <div class="node">Check<small>every write</small></div><div class="arr">→</div>
+        <div class="node">Submit<small>model</small></div><div class="arr">→</div>
+        <div class="node on">Gate<small>harness</small></div>
+      </div>
+      <table>
+        <tr><th>Gate item at submit</th><th>Catches what <code>jac check</code> alone passes</th></tr>
+        <tr><td><code>jac check</code>, import warnings as errors</td><td>W1100 to W1102 exit with code 0</td></tr>
+        <tr><td>Wiring</td><td>Endpoint not imported in the entry file: 405 at run time</td></tr>
+        <tr><td>Data on the graph</td><td>State kept in a module variable instead of nodes</td></tr>
+        <tr><td>Descriptions</td><td>Public endpoint with no sentence saying what it does</td></tr>
+        <tr><td>Browser actions, app restarted before the last one</td><td>Page that does not update; data that does not survive</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="row"><h2>Plan as real Jac files</h2><span class="pill plan">Designed</span></div>
+      <ul>
+        <li>The model drafts <b>declaration files</b>: imports and typed signatures, no bodies</li>
+        <li>A script reads them and builds the <b>dependency graph</b>; the compiler checks the plan</li>
+        <li>Each task card then carries the signatures it uses, taken from the graph</li>
+        <li>Context <b>resets at every task</b>; a finished task is one line</li>
+        <li>Tests are written before bodies and frozen afterwards</li>
+      </ul>
+      <p class="note">Running today: Implement with its gate, on single-task specs written by hand.</p>
+    </div>
+  </div>
+  <div class="foot">Dashed returns not drawn: a bug found in Page test or E2E goes back to Implement; a wrong plan or a change request goes back to Plan.</div>
+</div></section>
+
+<!-- 3 -->
+<section class="slide"><div class="in">
+  <div class="kick">New Harness · 3 of 5</div>
+  <h1>Tools: 18 in total, and only the ones the phase needs</h1>
+  <p class="sub">No shell. The tool list changes with the phase, so the model is never offered a tool it should not use now.</p>
+  <div class="cols" style="--cols:1.55fr 1fr">
+    <div class="card scroll">
+      <table>
+        <tr><th>Tool</th><th class="c">Understand</th><th class="c">Plan</th><th class="c">Setup</th><th class="c">Tests</th><th class="c">Implement</th><th class="c">Page, E2E</th></tr>
+        <tr><td><code>read</code> <code>search</code></td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+        <tr><td><code>write</code> <code>edit</code></td><td class="c">brief</td><td class="c">declarations</td><td></td><td class="c">tests</td><td class="c">task files</td><td class="c">task files</td></tr>
+        <tr><td><code>lookup</code> <code>map</code> <code>guide</code> <code>unfold</code></td><td></td><td class="c yes">✓</td><td></td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+        <tr><td><code>add_task</code> <code>drop_task</code></td><td></td><td class="c yes">✓</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td><code>install</code></td><td></td><td></td><td class="c yes">✓</td><td></td><td class="c yes">✓</td><td></td></tr>
+        <tr><td><code>test</code></td><td></td><td></td><td></td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+        <tr><td><code>browse</code></td><td></td><td></td><td></td><td></td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+        <tr><td><code>pick</code></td><td></td><td></td><td></td><td class="c yes">✓</td><td class="c yes">✓</td><td></td></tr>
+        <tr><td><code>submit</code></td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+        <tr><td><code>replan</code></td><td></td><td></td><td></td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+        <tr><td><code>ask</code></td><td class="c yes">✓</td><td class="c yes">✓</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td><code>stuck</code></td><td></td><td class="c yes">✓</td><td></td><td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+        <tr><th>Tools offered</th><th class="c">6</th><th class="c">13</th><th class="c">4</th><th class="c">13</th><th class="c">15</th><th class="c">13</th></tr>
+      </table>
+      <p class="note"><span class="pill built">Built</span> <code>read</code> <code>write</code> <code>edit</code> <code>submit</code> &nbsp; <span class="pill plan">Designed</span> the other 14</p>
+    </div>
+    <div class="card">
+      <h2>What makes them fit a small model</h2>
+      <ul>
+        <li><b>Paths are scoped.</b> A write outside the task's files is refused</li>
+        <li><b>Read before change.</b> A file not yet seen cannot be edited</li>
+        <li><b>Edit by text, not by line number.</b> Lines are shown as <code>14│ </code> and the prefix is stripped</li>
+        <li><b>Results are short.</b> <code>refused: read server.jac first.</code></li>
+        <li><b>Error notes.</b> One line of fix where the compiler message gives none</li>
+      </ul>
+      <div class="row"><b><code>lookup</code>: an IDE hover as a tool</b><span class="pill plan">Designed</span></div>
+      <pre>lookup AddTask
+walker:pub AddTask   tasks.jac   built
+"""Store a new task and return it."""
+has title: str
+uses: Task (node: title: str, done: bool)
+used by: pages/index.jac</pre>
+    </div>
+  </div>
+  <div class="foot">The harness runs these itself, with no tool call: check after every write, dependency graph, dev server start and restart, folding, stall detection.</div>
+</div></section>
+
+<!-- 4 -->
+<section class="slide"><div class="in">
+  <div class="kick">New Harness · 4 of 5</div>
+  <h1>Context: built by the harness, folded by rule, never summarised</h1>
+  <p class="sub">No language model writes a summary at any level. What the model sees is computed from the project and from the log.</p>
+  <div class="cols">
+    <div class="card">
+      <div class="row"><h2>The task card is computed at run time</h2><span class="pill built">Built</span></div>
+      <pre>Task T01: To-do list
+Goal: Turn the page into a to-do list. ...
+You may write: server.jac, frontend.jac, main.jac
+
+Files:
+  frontend.jac
+  jac.toml
+  main.jac
+  server.jac  : Server endpoints.
+      def:pub ping -> str  : Return a fixed reply, to
+                             prove the client can reach
+                             the server.
+
+--- main.jac
+1│ """Entry point. ..."""
+3│ import from server { ping }</pre>
+      <ul>
+        <li>File tree and entry file always; the entry file's name comes from <code>jac.toml</code></li>
+        <li>Small task files in full; above a size limit, <b>signature and description</b> per declaration</li>
+      </ul>
+      <p class="note">With names only, the model skipped the server file in 5 of 6 runs. With descriptions, in 0 of 6.</p>
+    </div>
+    <div class="card">
+      <div class="row"><h2>Fold: failures become one line</h2><span class="pill built">Built</span></div>
+      <pre>[m4] write frontend.jac -> failed: E1032 Type is
+     Unknown, cannot access attribute "title"
+[m5] edit frontend.jac -> failed: old-not-found
+[m6] edit frontend.jac -> refused: no-change</pre>
+      <ul>
+        <li>Only the <b>newest</b> failure is shown in full; older ones keep the call, the status and the compiler's message</li>
+        <li>No line numbers and no source in a folded line: the file has changed, and failed code is what gets copied</li>
+        <li>Successful turns stay in full; the context <b>resets per task</b></li>
+        <li>The view never shows who acted: an admin fix reads as an ordinary turn</li>
+      </ul>
+      <div class="row"><b>Unfold</b><span class="pill plan">Designed</span></div>
+      <p><code>unfold(m4)</code> returns the full turn as a new tool result. History is not rewritten, so the prompt cache stays valid.</p>
+      <p class="note">Training samples are rendered by the same code, so the model is trained on exactly what it sees at run time.</p>
+    </div>
+  </div>
+  <div class="foot">Longest context in 33 runs across 11 tasks: under 5,000 tokens. Hard limit of the model: 262,144.</div>
+</div></section>
+
+<!-- 5 -->
+<section class="slide"><div class="in">
+  <div class="kick">New Harness · 5 of 5</div>
+  <h1>When the model stalls: an admin fixes it, and the fix becomes training data</h1>
+  <p class="sub">The harness decides that a step is stalled, from the log. The admin is a large model with a shell and the Jac skills.</p>
+  <div class="flow">
+    <div class="node on">Work<small>small model</small></div><div class="arr"><b>stall</b>→</div>
+    <div class="node">Fresh<small>new session, same step</small></div><div class="arr"><b>stall</b>→</div>
+    <div class="node">Advise<small>admin writes one hint</small></div><div class="arr"><b>stall</b>→</div>
+    <div class="node on">Takeover<small>admin edits until the gate passes</small></div><div class="arr"><b>5 failures</b>→</div>
+    <div class="node hot">Failed<small>task marked, run continues</small></div>
+  </div>
+  <div class="three">
+    <div class="card">
+      <div class="row"><h2>Stall signals</h2><span class="pill built">Built</span></div>
+      <table>
+        <tr><td>Same first error</td><td>3 failed calls in a row</td></tr>
+        <tr><td>Failures in the step</td><td>5</td></tr>
+        <tr><td>Identical failed call</td><td>refused at once</td></tr>
+        <tr><td>File back to an earlier state</td><td>noted once, stall on the third visit</td></tr>
+        <tr><td>Context of the step</td><td>32,000 tokens</td></tr>
+      </table>
+      <p class="note">The same gate judges the admin. It gets the conventions as <code>AGENTS.md</code>: nodes and edges for data, a walker when a read walks more than one hop.</p>
+    </div>
+    <div class="card">
+      <div class="row"><h2>From log to samples</h2><span class="pill plan">Designed</span></div>
+      <ul>
+        <li>One append-only log per run; every prompt saved in full</li>
+        <li>One main sample per session, plus <b>one per failure that was fixed</b></li>
+        <li>Failed turns stay in the sample with weight 0</li>
+        <li>The admin's fix is replayed as the small model's own tool calls</li>
+        <li><code>stuck</code> calls and hints are removed: the model never learns that help exists</li>
+      </ul>
+      <p class="note">Takeover is built with Codex as admin. Fresh, Advise and the replay are not.</p>
+    </div>
+    <div class="card soft">
+      <h2>First numbers</h2>
+      <div class="row"><span class="big">3 / 33</span><span>runs pass with the small model alone</span></div>
+      <p class="note">11 one-page tasks, 3 runs each. All 3 are the one task that stores no data.</p>
+      <div class="row"><span class="big">10 / 11</span><span>tasks solved by the admin</span></div>
+      <p class="note">Built from the template, at most 2 attempts each; every server uses nodes.</p>
+      <p>The gap is the case for the dataset: same harness, same gate, trajectories that end in a working app.</p>
+    </div>
+  </div>
+  <div class="foot">Tasks: like button, poll, to-do, guestbook, shopping list, check-in sheet, notes with a dialog, stopwatch, food order, 2048, hello button. Pass means every browser action passes on a fresh copy of the app.</div>
+</div></section>
+
+</div>
