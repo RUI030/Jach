@@ -4,6 +4,7 @@ import from server { ping }
 
 import from .frontend { app as ClientApp }
 
+"""Mount the client page as the app."""
 def:pub app -> JsxElement {
     <ClientApp/>
 }

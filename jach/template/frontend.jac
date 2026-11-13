@@ -2,6 +2,7 @@
 
 import from server { ping }
 
+"""Show the page: a Ping button and the reply from the server."""
 def:pub app -> JsxElement {
     has reply: str = "";
 

@@ -103,6 +103,31 @@ def outline(path: str) -> str {
     return "\n".join(lines);
 }
 
+"""Description rule (decision 0016): every file and top-level declaration says what it does, without an input/output list."""
+def descriptions(project_dir: str) -> dict {
+    pat = r'^(?:"""((?:(?!""").)*)"""[ \t]*\n)?((?:async\s+)?(?:def|walker|node|edge|obj|enum)(?::pub|:priv)?\s+(\w+)[^{;=\n]*)';
+    for rel in project_files(project_dir) {
+        if not rel.endswith(".jac") { continue; }
+        src = open(os.path.join(project_dir, rel)).read();
+        problem = "";
+        if not re.match(r'\s*"""', src) { problem = f"{rel} has no description on its first line"; }
+        for m in re.finditer(pat, src, re.S | re.M) {
+            if problem { break; }
+            doc = (m.group(1) or "").strip();
+            sig = m.group(2).strip();
+            if not doc { problem = f"`{sig}` in {rel} has no description"; }
+            elif re.search(r"\b(Args|Returns|Parameters|Params)\s*:", doc) { problem = f"the description of `{sig}` in {rel} lists inputs or outputs; the signature already has them"; }
+            elif re.sub(r"[\W_]", "", doc).lower() == re.sub(r"[\W_]", "", m.group(3)).lower() { problem = f"the description of `{sig}` in {rel} only repeats its name"; }
+        }
+        if problem {
+            text = f"check failed: DESCRIPTION {problem}.\n"
+                + 'Write one sentence directly above it saying what it does, for example:\n"""Store a new task and return it."""';
+            return {"clean": False, "text": text, "code": "DESCRIPTION", "message": problem[:120]};
+        }
+    }
+    return {"clean": True, "text": "", "code": "", "message": ""};
+}
+
 """Wiring rule (compiler probe section 5): an endpoint the client imports must be named in the entry file's import list.
 Reports every missing name at once, with the full import line to write for each module."""
 def wiring(project_dir: str, entry_file: str = "") -> dict {
