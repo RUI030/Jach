@@ -1,6 +1,6 @@
 # 0012: Run log format
 
-- **Status:** Proposed, 2026-11-12. Not yet accepted.
+- **Status:** Accepted, 2026-11-12
 - **Layer:** observability, state and recovery
 - **Builds on:** [0005](0005-task-format.md), [0006](0006-tool-set.md), [0007](0007-fold-and-unfold.md), [0011](0011-build-from-scratch-in-jac.md)
 
@@ -37,6 +37,7 @@ Context and Samples come from the same renderer, so the model is trained on exac
 |---|---|
 | `runs/<run>/meta.json` | Harness commit, Jac version, model file and its hash, chat template hash, sampling settings, seed, fold rule version, mode (interactive or auto) |
 | `runs/<run>/events.jsonl` | The log |
+| `runs/<run>/prompts.jsonl.gz` | The complete rendered prompt of every `request`, keyed by `seq`. Kept apart and compressed so the log stays small and readable. |
 | `runs/<run>/project/` | The app being built. Every file change is also in the log, so any earlier state can be rebuilt. |
 
 ## 3. Events
@@ -68,7 +69,7 @@ Event types:
 | `user` | The user types or answers `ask` | Text |
 
 - Ids (`m12`, `s3`, `T03`) are unique within a run. They are the ids the model sees and passes to `unfold`.
-- The rendered prompt is not stored in full. It is rebuilt from `shown` and checked against the hash. A failed check means the renderer changed.
+- The complete rendered prompt of every request is saved in `prompts.jsonl.gz`. It is the exact record of what the model saw, independent of any later change to the renderer. `shown` and the hash stay in the log so a rebuilt prompt can be compared with the saved one.
 - Admin turns use the same `request`, `reply` and `tool` events with `actor: admin`.
 
 Example:
@@ -94,7 +95,7 @@ Which turns carry loss, decided at export from the log:
 | Turn | Loss? |
 |---|---|
 | Reply whose tool call ended `ok` | Yes |
-| Reply whose call ended `failed` or `refused` | No. It appears as a folded line. |
+| Reply whose call ended `failed` or `refused` | Weight 0. In a fix sample it is shown in full; elsewhere as a folded line. |
 | `stuck` call, its result, admin hints | Removed from the sample entirely |
 | Admin fix, replayed as small-model tool calls | Yes, as an ordinary assistant turn. Nothing marks it as the admin's. |
 
@@ -102,8 +103,8 @@ Which turns carry loss, decided at export from the log:
 - The log still records the actor of every turn; only the rendered views hide it.
 - Whole-run filters (only runs that passed E2E, and so on) belong to the dataset step, not to this format.
 
-## 5. Open points
+## 5. Decided in discussion (2026-11-12)
 
-1. **Sample count.** Resolved by section 4: 1 + *f* samples per session. To confirm with the training side.
-2. **Failed turns as targets.** This draft never trains on them. A reply that failed only because of a later check (correct edit, unrelated error elsewhere) may still be a good target. Decide after looking at real runs.
-3. **Full prompt text.** Rebuilt from `shown` in this draft. Storing it in full is simpler to audit and much larger.
+- "Failed" in section 4 means a failed **turn**. It is kept in the sample with loss weight 0, never dropped. A failed **run** is a different matter and is handled by the dataset filter.
+- Complete prompts are saved.
+- Whether some failed turns deserve weight (a correct edit that failed on an unrelated error) is revisited after looking at real runs.
