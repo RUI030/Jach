@@ -17,13 +17,13 @@ The versions differ in ways that matter to a harness. 0.36 removed the `sv` / `c
 
 ## Decision
 
-JacKnife targets Jac 0.36. The harness, the training trajectories and the evaluation tasks all run on the same 0.36 release; 0.36.1 is the working version.
+Jach targets Jac 0.36. The harness, the training trajectories and the evaluation tasks all run on the same 0.36 release; 0.36.1 is the working version.
 
 ## Consequences
 
 - The model's pre-training and its run-time environment agree for the first time.
 - Existing harness trajectories (0.34.28) cannot be reused as they are. Anything taken from them has to be regenerated or checked on 0.36.
-- JacKnife does not run inside the jacBuilder production sandbox while that sandbox pins 0.34.x.
+- Jach does not run inside the jacBuilder production sandbox while that sandbox pins 0.34.x.
 - Every rule the harness enforces (wiring, imports, async) must be established by experiment on 0.36.1, not carried over from 0.34 findings.
 - The harness still reads version-dependent knowledge from the installed binary (`jac guide`, release notes) instead of hard-coding it, so a later move to another version changes data, not harness code.
 

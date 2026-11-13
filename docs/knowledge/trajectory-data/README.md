@@ -1,6 +1,6 @@
 # Trajectory data
 
-How training data for agentic fine-tuning is built: making tasks with executable checks, collecting teacher trajectories, deciding which to keep, what to do with failures and error turns, how to format targets and mask the loss, and how to evaluate the result. Most sources are SWE-bench-style Python work with students from 7B to 32B. None trains a model near 9B inside a harness that owns the workflow, so every transfer to JacKnife is an inference. All notes were checked against the source text on 2026-11-11.
+How training data for agentic fine-tuning is built: making tasks with executable checks, collecting teacher trajectories, deciding which to keep, what to do with failures and error turns, how to format targets and mask the loss, and how to evaluate the result. Most sources are SWE-bench-style Python work with students from 7B to 32B. None trains a model near 9B inside a harness that owns the workflow, so every transfer to Jach is an inference. All notes were checked against the source text on 2026-11-11.
 
 | Note | Grade | One-line takeaway |
 |---|---|---|

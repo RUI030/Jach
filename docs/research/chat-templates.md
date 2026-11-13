@@ -11,7 +11,7 @@ Read on 2026-11-12 from files on the development machine.
 
 The only difference between the Ornith and Qwen 3.5 templates is the one condition on earlier reasoning (line 100 of the Ornith file).
 
-Consequences for JacKnife:
+Consequences for Jach:
 
 - An agent run is one user message followed by many tool turns, so every turn is "after the last user message". Under both templates all reasoning of the run stays in the prompt by default. Nothing in the templates removes it.
 - The harness decides what it sends. If it sends an earlier assistant turn without reasoning, the Ornith template renders an empty think block for it.

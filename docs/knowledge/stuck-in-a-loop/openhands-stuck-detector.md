@@ -51,7 +51,7 @@ There is no measured evidence. The repository ships the thresholds as defaults w
 
 Our interpretation, not the source's claims.
 
-- The five scenarios are a reasonable starting rule set for JacKnife, written as a pure function over the event log, with the response policy kept separate.
+- The five scenarios are a reasonable starting rule set for Jach, written as a pure function over the event log, with the response policy kept separate.
 - The nudge-then-stop pair fits our ladder: nudge at streak k, and call the admin model at k+1 instead of stopping.
 - Matching invalid calls by validation-error signature fits our misused-parameter failures, where irrelevant fields vary between attempts.
 - Including the model's reasoning text in the equality key is a choice to avoid. Our model's reasoning varies more than its actions.

@@ -56,7 +56,7 @@ Datasets: HEADLINES (gold-price direction from financial headlines, 10,000 examp
 
 Our interpretation, not the paper's claims.
 
-- JacKnife is already a two-stage cascade: small model first, admin on failure. The paper's point is that the accept-or-escalate decision is the component to engineer.
+- Jach is already a two-stage cascade: small model first, admin on failure. The paper's point is that the accept-or-escalate decision is the component to engineer.
 - For many of our steps we have something better than a learned scorer: the Jac checker and the task's acceptance checks, which the model cannot influence.
 - Where those checks are silent (planning, design), a small learned "will this attempt succeed" scorer over harness features (failed-edit count, repeated calls, steps used) could be trained later from our own run logs, as FrugalGPT trains its scorer from task data.
 - The savings do not transfer: our tasks are multi-turn, and escalating mid-task costs the admin a long context read, unlike a fresh single query.

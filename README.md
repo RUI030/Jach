@@ -1,8 +1,8 @@
-# JacKnife
+# Jach
 
 A coding-agent harness built for a small (9B) model fine-tuned on [Jac](https://www.jac-lang.org/).
 
-General-purpose harnesses assume a large model that can plan for itself, pick from dozens of tools and recover from its own mistakes. JacKnife assumes the opposite: the harness owns the workflow, the tool set is small and Jac-specific, and work is cut into tasks with clear scope, inputs, outputs and acceptance criteria so the model can resume from any point.
+General-purpose harnesses assume a large model that can plan for itself, pick from dozens of tools and recover from its own mistakes. Jach assumes the opposite: the harness owns the workflow, the tool set is small and Jac-specific, and work is cut into tasks with clear scope, inputs, outputs and acceptance criteria so the model can resume from any point.
 
 ## Status
 

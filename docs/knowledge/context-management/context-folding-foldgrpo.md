@@ -70,7 +70,7 @@ Behaviour statistics [1, §4.3, Table 2]:
 
 Our interpretation, not the paper's claims.
 
-- A JacKnife task maps onto a branch: the task brief is the prompt, the checked result is the return message. Having the harness end the task removes the "never returns" failure the paper needed RL to fix.
+- A Jach task maps onto a branch: the task brief is the prompt, the checked result is the return message. Having the harness end the task removes the "never returns" failure the paper needed RL to fix.
 - The untrained folding agent left 47K tokens in its main thread on SWE-bench. We should not expect a 9B model to fold on its own; harness-driven folding is the safer default.
 - If any fold behaviour is model-driven, it must appear in our training trajectories, and failure modes (out-of-scope work, failed tool calls) need explicit negative signal.
 
