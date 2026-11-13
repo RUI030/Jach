@@ -56,7 +56,7 @@ Folding rules:
 |---|---|
 | A `failed` or `refused` turn is folded as soon as the model makes its next call. Only the newest failure is ever shown in full. | The model needs the current error to fix it. Older errors take space and invite copying. The line still says what was called and that it failed. |
 | A `read` or `write` of a file that has since been read or written again is folded | Only the newest view of a file is true |
-| An `ok` result of `guide`, `map`, `search`, `test` or `browse` older than the last *K* turns is folded | Old output is rarely needed again |
+| An `ok` result of `guide`, `lookup`, `map`, `search`, `test` or `browse` older than the last *K* turns is folded | Old output is rarely needed again |
 | The model's reasoning is removed from every turn once its tool call has been made | It is stored for the log, not shown again. The Ornith template keeps all earlier reasoning by default ([chat-templates](../research/chat-templates.md)), so training trajectories must be rendered the same way as run time: earlier turns with an empty think block. |
 
 - *K* is not guessed. The harness starts with all `ok` turns Full inside a step and we lower *K* from measurement (tokens per step against pass rate). The published best values differ by harness (10 and 58 in the two measured in the JetBrains study), so no outside number transfers.
@@ -88,7 +88,7 @@ No text is composed. Each tool returns two things: the full result for the model
 | `write` | path | first check error | `[m9] write tasks.impl.jac -> failed: E1053 Cannot assign str to int` |
 | `edit` | path | first check error, or `old-not-found`, `old-not-unique`, `no-change` | `[m12] edit tasks.impl.jac -> failed: old-not-found` |
 | `search` | the text | none | `[m5] search "Add" -> ok (3 hits)` |
-| `map`, `guide` | name or topic | `unknown` | `[m6] map AddTask -> ok (planned)` |
+| `lookup`, `map`, `guide` | name, path or topic | `unknown` | `[m6] lookup AddTask -> ok (walker, planned)` |
 | `install` | package names | `install-error` and the installer's first error line | `[m2] install lucide-react -> ok` |
 | `test` | test names, or `all` | first failing test and its assertion message | `[m15] test all -> failed: test_toggle_task expected True, got False (2 of 3 pass)` |
 | `browse` | action name | first failing step, plus the first page error if any | `[m20] browse "add a task" -> failed: expect "Buy milk"; POST /walker/AddTask 405` |

@@ -31,7 +31,7 @@ flowchart LR
 
 ## 2. The tools
 
-17 tools in five groups.
+18 tools in five groups.
 
 | Group | Tool | Parameters | Returns |
 |---|---|---|---|
@@ -39,7 +39,8 @@ flowchart LR
 | | `write` | `path`, `content` | Check result |
 | | `edit` | `path`, `old`, `new` | Check result |
 | | `search` | `text`, `path?` | Matching lines with file and line number |
-| Knowledge | `map` | `name` or `path` | Where a name is defined, its signature, who uses it, and its state: built, planned, unknown |
+| Knowledge | `lookup` | `name` | What the name is (see below), its signature or meaning, where it is defined, who uses it |
+| | `map` | `path?` | What a file defines and imports; with no path, the list of project files |
 | | `guide` | `topic` | The `jac guide` page of the installed version |
 | | `unfold` | `id` | The full turns behind a folded summary |
 | Plan | `add_task` | Card fields of 0005 | The task list checks that now fail |
@@ -58,6 +59,35 @@ Notes on the two editing tools:
 - `write` replaces a whole file. It is the normal way to create a file and the fallback when edits keep failing.
 - `edit` replaces one exact piece of text. Matching ignores differences in indentation and trailing spaces.
 - An `edit` that fails says why and helps: `old` not found returns the closest text in the file; `old` found more than once returns the line numbers; `old` equal to `new` is refused. (Measured on v1.35: 75 identical old/new, 66 not found.)
+
+### `lookup`: what a name is
+
+One answer per name, from a fixed set of kinds:
+
+| Kind | Source | Example answer |
+|---|---|---|
+| Keyword | Keyword table of the installed Jac version | `node`: keyword. Declares a graph node type. Not usable as a name; write `` `node `` to escape. |
+| Built-in | Compiler | `root`: built-in reference to the current user's root node. Cannot be assigned. |
+| Project name, built | Dependency graph | `AddTask`: walker in `tasks.jac`. `has title: str`. Used by `pages/index.jac`. |
+| Project name, planned | Dependency graph | `ToggleTask`: walker declared in `tasks.jac`, no body yet (task T04). |
+| File or module | Dependency graph | `tasks`: module `tasks.jac`. Defines Task, AddTask, ListTasks. |
+| Package export | Installed packages | `useState`: exported by `react`. |
+| Unknown | None of the above | `DeleteTask`: not defined anywhere. Closest names: `ToggleTask`, `AddTask`. |
+
+### Keyword note on errors
+
+When an error sits on a token that is a Jac keyword or built-in, the harness adds the `lookup` answer for that word to the error result. The model can then judge whether it misused the word or meant a name.
+
+Measured on 0.36.1, the compiler's own messages are uneven, which is why the note is needed:
+
+| Code | Compiler says |
+|---|---|
+| `def f(report: int)` | Clear: E0013, names the keyword and the backtick escape |
+| `has root: int` | Clear: E0024, built-in reference |
+| `node = "a";` | Unclear: "Expected identifier, got '='". Does not say `node` is a keyword. |
+| `entry = 1;`, `here = 3;`, `def visit()`, `has test`, `has props` | Accepted, no message |
+
+The note is added only on an error, not on every use of a keyword. The keyword table is data read for the installed version (decision 8).
 
 ### Line numbers
 
@@ -86,7 +116,7 @@ The model never counts lines.
 |---|---|---|---|---|---|---|
 | `read`, `search` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `write`, `edit` | brief only | declarations only | | test files only | task's files only | task's files only |
-| `map`, `guide` | | ✓ | | ✓ | ✓ | ✓ |
+| `lookup`, `map`, `guide` | | ✓ | | ✓ | ✓ | ✓ |
 | `unfold` | | ✓ | | ✓ | ✓ | ✓ |
 | `add_task`, `drop_task` | | ✓ | | | | |
 | `install` | | | ✓ | | ✓ | |
@@ -98,7 +128,7 @@ The model never counts lines.
 | `ask` | ✓ | ✓ | | | | |
 | `stuck` | | ✓ | | ✓ | ✓ | ✓ |
 
-The largest set the model sees at once is 14 (Implement).
+The largest set the model sees at once is 15 (Implement).
 
 ## 5. The admin model
 
