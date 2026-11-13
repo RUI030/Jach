@@ -18,7 +18,9 @@ flowchart LR
     D --> K[Card]
 ```
 
-Every file and every top-level declaration (`node`, `edge`, `walker`, `obj`, `enum`, `def`) has a description: the string placed directly above it.
+Every server entry point that others call (`def:pub`, `walker:pub`) has a description: the string placed directly above it.
+
+Not required: client components and the functions inside them, declarations without `:pub`, abilities inside a walker, file headers. Data declarations (`node`, `edge`, `obj`) are not checked for now.
 
 | Rule | Example |
 |---|---|
@@ -33,7 +35,7 @@ Why: the outline, `lookup` and the task card show the signature and this descrip
 
 | Check | How | At |
 |---|---|---|
-| A description is present on the file and on every top-level declaration | Script | `submit` |
+| A description is present on every `def:pub` and `walker:pub` that is not a client component | Script | `submit` |
 | It has no `Args:`, `Returns:`, `Parameters:` section | Script | `submit` |
 | It is not just the name repeated | Script | `submit` |
 | It is true and says what the thing does | Not checkable by script. Admin review in the Deliver phase, if at all. | |
@@ -56,7 +58,15 @@ Already enforced: Jac import form (compiler), entry-file imports (wiring check),
 
 Candidates, not decided: nodes and walkers instead of Python-style globals for stored data; shadcn components and layout rules. Each needs a check before it becomes a convention.
 
+## 5. Harness text is short
+
+Every word shown to the model costs context and attention. Tool descriptions, results, refusals and the system prompt say only what the model needs for its next call: which file, which line, what to write.
+
+## Decided in discussion (2026-11-13)
+
+- Descriptions are for the server side, on what is called from outside. Nothing is required on the client side.
+- Harness text is kept as short as possible.
+
 ## Open
 
-1. Do functions inside a client component (event handlers) need a description? Proposed: no.
-2. Walker abilities and `obj` methods? Proposed: no at first; top level only.
+1. Should `node`, `edge` and `obj` need a description? Not checked now.

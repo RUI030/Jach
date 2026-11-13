@@ -7,9 +7,8 @@ import from check { entry_of, project_files, outline }
 import from model { render, complete, parse_call, is_repeating }
 import from browse { run_actions }
 
-glob SYSTEM = "You are building a Jac web app. Work only on the task you are given.\n"
-    + "Call exactly one tool in each reply. After every write or edit the harness checks the file and shows the first error.\n"
-    + "Fix the error shown before doing anything else. When the task is complete and the check is clean, call submit.";
+glob SYSTEM = "You build a Jac web app. Do only the task. One tool call per reply.\n"
+    + "Each write or edit is checked; fix the error shown first. When done, call submit.";
 
 glob MAX_FAILURES = 5;
 glob SAME_ERROR = 3;
@@ -34,10 +33,10 @@ def project_view(project_dir: str, writes: list[str]) -> dict {
     shown = [entry] + mine;
     size = sum([os.path.getsize(os.path.join(project_dir, w)) for w in shown if os.path.isfile(os.path.join(project_dir, w))]);
     if size <= FULL_TEXT_CHARS { full_set = shown; }
-    out = "Project files:";
+    out = "Files:";
     for rel in project_files(project_dir) {
         note = "";
-        if rel in full_set { note = "  (shown below)"; }
+        if rel in full_set { note = ""; }
         elif rel.endswith(".jac") { note = "  : " + outline(os.path.join(project_dir, rel)); }
         out += f"\n  {rel}{note}";
     }
@@ -47,7 +46,7 @@ def project_view(project_dir: str, writes: list[str]) -> dict {
         rows = open(full).read().rstrip("\n").split("\n");
         out += f"\n\n--- {rel}\n" + "\n".join([f"{i + 1}│ {ln}" for (i, ln) in enumerate(rows)]);
     }
-    return {"text": out + "\n\nRead a file before you change it, unless it is shown above.", "seen": full_set};
+    return {"text": out, "seen": full_set};
 }
 
 walker Session {
@@ -115,9 +114,9 @@ walker Session {
             mid = f"m{self.n}";
             call = parse_call(out["text"]);
             if not call["ok"] and is_repeating(out["text"]) {
-                call = {"ok": False, "error": "the reply repeated the same lines over and over until it was cut off. Write a shorter file with only what the task asks for"};
+                call = {"ok": False, "error": "the reply repeated itself until cut off. Write only what the task asks"};
             } elif not call["ok"] and out["truncated"] {
-                call = {"ok": False, "error": "the reply was cut off at the output limit. Write less in one call"};
+                call = {"ok": False, "error": "the reply was cut off. Write less in one call"};
             }
             self.log.event("reply", "model", {"id": mid, "raw": out["text"], "call": call, "prompt_tokens": out["prompt_tokens"], "out_tokens": out["out_tokens"]});
             if call["ok"] {
@@ -129,10 +128,10 @@ walker Session {
                 if dup {
                     res = {"status": "refused", "target": str(call["args"].get("path", "")), "code": "repeat",
                            "message": f"identical to {dup[-1]['mid']}, which failed",
-                           "text": f"refused: this call is identical to {dup[-1]['mid']}, which failed with: {dup[-1]['code']} {dup[-1]['message']}. Sending it again cannot work. Change the content."};
+                           "text": f"refused: same call as {dup[-1]['mid']}, which failed: {dup[-1]['code']} {dup[-1]['message']}. Change it."};
                 } elif call["tool"] in ["write", "edit"] and tpath not in self.seen and os.path.isfile(os.path.join(self.project_dir, tpath)) {
                     res = {"status": "refused", "target": tpath, "code": "not-read", "message": "read the file first",
-                           "text": f"refused: you have not read {tpath}. Read it first, then change it."};
+                           "text": f"refused: read {tpath} first."};
                 } else {
                     res = run_tool(self.project_dir, self.writes, call["tool"], call["args"]);
                     if call["tool"] in ["read", "write"] and res["status"] != "refused" and tpath not in self.seen { self.seen.append(tpath); }
@@ -142,7 +141,7 @@ walker Session {
                         self.log.event("tool", "harness", {"tool": "browse", "target": r["name"], "status": r["status"], "message": r["message"], "result": r["text"]});
                         if r["status"] != "ok" {
                             res = {"status": "failed", "target": "step", "code": "BROWSER", "message": f'action "{r["name"]}": {r["message"]}'[:200],
-                                   "text": f'check: clean\nbrowser test failed in action "{r["name"]}": {r["message"]}\n{r["text"]}'};
+                                   "text": f'browser test "{r["name"]}" failed: {r["message"]}\n{r["text"]}'};
                             break;
                         }
                     }
@@ -150,7 +149,7 @@ walker Session {
                 t = {"mid": mid, "call": True, "tool": call["tool"], "args": call["args"], "raw": out["text"]};
             } else {
                 res = {"status": "refused", "target": "", "code": "malformed", "message": call["error"],
-                       "text": f"refused: {call['error']}. Reply with exactly one complete tool call."};
+                       "text": f"refused: {call['error']}. Reply with one tool call."};
                 t = {"mid": mid, "call": False, "tool": "(no call)", "args": {}, "raw": out["text"]};
             }
             t.update({"target": res["target"], "status": res["status"], "code": res["code"], "message": res["message"], "result": res["text"]});
