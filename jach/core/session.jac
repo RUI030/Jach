@@ -1,5 +1,6 @@
 """One walker = one session = one context (decisions 0005, 0007, 0010)."""
 import os;
+import hashlib;
 import from tree { Task, Step, Turn, Has, Then }
 import from log { RunLog }
 import from tools { SCHEMAS, run_tool }
@@ -64,6 +65,7 @@ walker Session {
     has dry: bool = False;
     has guide: str = "";
     has seen: list[str] = [];
+    has states: dict = {};
 
     """Build the messages for the next request: failures folded, except the newest one."""
     def view -> list[dict] {
@@ -90,6 +92,10 @@ walker Session {
         pv = project_view(self.project_dir, here.writes);
         self.card = f"Task {here.tid}: {here.title}\nGoal: {here.goal}\nYou may write: {', '.join(here.writes)}\n\n" + pv["text"];
         self.seen = pv["seen"];
+        for w in here.writes {
+            full = os.path.join(self.project_dir, w);
+            if os.path.isfile(full) { self.states[w + ":" + hashlib.md5(open(full).read().encode()).hexdigest()] = ["the start"]; }
+        }
         if self.guide { self.card += "\n\nReference for writing the page:\n" + self.guide; }
         here.status = "active";
         self.log.at({"session": self.sid, "task": here.tid});
@@ -112,6 +118,7 @@ walker Session {
             out = complete(self.server, prompt, 4096, 0.7 if retry else 0.2, self.dry);
             self.n += 1;
             mid = f"m{self.n}";
+            cycle = False;
             call = parse_call(out["text"]);
             if not call["ok"] and is_repeating(out["text"]) {
                 call = {"ok": False, "error": "the reply repeated itself until cut off. Write only what the task asks"};
@@ -135,6 +142,16 @@ walker Session {
                 } else {
                     res = run_tool(self.project_dir, self.writes, call["tool"], call["args"]);
                     if call["tool"] in ["read", "write"] and res["status"] != "refused" and tpath not in self.seen { self.seen.append(tpath); }
+                    if call["tool"] in ["write", "edit"] and res["status"] != "refused" {
+                        # Cycle rule: going back to an earlier state once is allowed and noted; a third visit is a stall.
+                        key = tpath + ":" + hashlib.md5(open(os.path.join(self.project_dir, tpath)).read().encode()).hexdigest();
+                        visits = self.states.setdefault(key, []);
+                        if visits {
+                            res["text"] += f"\nnote: {tpath} is back to its state after {visits[0]}." + (" Call submit to test it." if res["status"] == "ok" else "");
+                        }
+                        visits.append(mid);
+                        if len(visits) >= 3 { cycle = True; }
+                    }
                 }
                 if call["tool"] == "submit" and res["status"] == "ok" and self.actions {
                     for r in run_actions(self.project_dir, self.port, self.actions) {
@@ -160,6 +177,12 @@ walker Session {
             prev = node_t;
             print(f"  {fold_line(t)}   [{out['prompt_tokens']} in, {out['out_tokens']} out]");
 
+            if cycle {
+                here.status = "stalled";
+                self.outcome = "stalled:cycle";
+                self.log.event("stall", "harness", {"rule": "cycle", "id": mid});
+                break;
+            }
             if t["status"] == "ok" {
                 same = 0;
                 last_err = "";

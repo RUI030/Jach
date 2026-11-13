@@ -57,4 +57,4 @@ They are listed in the order they should be decided, because earlier ones constr
 | 13 | Which Jac version the harness, training data and evaluation all target | all | Decided: 0.36. [0003](decisions/0003-target-jac-0-36.md) |
 | 14 | Evaluation ladder and the definition of a pass | 5, 6 | Open |
 | 15 | Which checkpoint lineage to build on, and thinking on or off with what budget | 1 | Open |
-| 16 | Code conventions enforced by the harness (descriptions first) | 4 | Proposed: [0016](decisions/0016-code-conventions.md) |
+| 16 | Code conventions enforced by the harness (descriptions first) | 4 | Decided: [0016](decisions/0016-code-conventions.md) |

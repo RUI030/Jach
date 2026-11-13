@@ -1,6 +1,6 @@
 # 0016: Code conventions enforced by the harness
 
-- **Status:** Proposed, 2026-11-13
+- **Status:** Accepted, 2026-11-13
 - **Layer:** gates, context assembly
 - **Builds on:** [0004](0004-sdlc-phases-and-gates.md), [0006](0006-tool-set.md) (`lookup`, `map`), [level 2 runs](../research/level2-runs-2026-11-13.md)
 

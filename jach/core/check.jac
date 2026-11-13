@@ -3,6 +3,11 @@ import re;
 import os;
 import subprocess;
 
+"""How to fix errors whose compiler message does not say (decision 0006, error note)."""
+glob ERROR_NOTES: dict = {
+    "E1032": "the value has no known type. Give its variable a type, like `has items: list[Item] = [];`, and import `Item`."
+};
+
 glob HARD_WARNINGS = ["W1100", "W1101", "W1102"];
 
 """Run `jac check` on a path inside the project. Returns the diagnostics that count as errors."""
@@ -54,6 +59,7 @@ def first_error(project_dir: str, target: str) -> dict {
     if not found { return {"clean": True, "text": "check: clean", "code": "", "message": ""}; }
     e = found[0];
     text = f"check failed: {e['code']} {e['message']}\n{e['path']}:{e['line']}\n" + excerpt(project_dir, e["path"], e["line"]);
+    if e["code"] in ERROR_NOTES { text = text.strip() + "\nnote: " + ERROR_NOTES[e["code"]]; }
     return {"clean": False, "text": text.strip(), "code": e["code"], "message": e["message"][:120]};
 }
 

@@ -74,6 +74,9 @@ def run_tool(project_dir: str, writes: list[str], name: str, args: dict) -> dict
         if lines and all([re.match(PREFIX, ln) is not None for ln in lines]) {
             return result("refused", path, "refused: remove the `N│ ` prefixes.", "has-prefix");
         }
+        if os.path.isfile(full) and open(full).read() == content {
+            return result("refused", path, f"refused: {path} already has this content.", "no-change");
+        }
         with open(full, "w") as f { f.write(content); }
         return after_change(project_dir, path, f"wrote {path}");
     }
