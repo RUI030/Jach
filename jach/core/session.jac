@@ -3,6 +3,7 @@ import os;
 import from tree { Task, Step, Turn, Has, Then }
 import from log { RunLog }
 import from tools { SCHEMAS, run_tool }
+import from check { entry_of, project_files, outline }
 import from model { render, complete, parse_call, is_repeating }
 import from browse { run_actions }
 
@@ -14,6 +15,7 @@ glob MAX_FAILURES = 5;
 glob SAME_ERROR = 3;
 glob MAX_TURNS = 40;
 glob STEP_TOKENS = 32000;
+glob FULL_TEXT_CHARS = 8000;  # setting: above this the card shows outlines and the model reads
 
 """One folded line for a turn (decision 0007 section 3)."""
 def fold_line(t: dict) -> str {
@@ -22,17 +24,30 @@ def fold_line(t: dict) -> str {
     return line;
 }
 
-"""What the project holds now: the file list, and the text of the files this task may write (decision 8, first form)."""
-def project_view(project_dir: str, writes: list[str]) -> str {
-    names = sorted([f for f in os.listdir(project_dir) if os.path.isfile(os.path.join(project_dir, f))]);
-    out = "The project was created from the template. Files: " + ", ".join(names) + "\nCurrent content of the files you may write:";
-    for w in writes {
-        full = os.path.join(project_dir, w);
-        if not os.path.isfile(full) { out += f"\n\n--- {w} (does not exist yet)"; continue; }
-        rows = open(full).read().rstrip("\n").split("\n");
-        out += f"\n\n--- {w}\n" + "\n".join([f"{i + 1}│ {ln}" for (i, ln) in enumerate(rows)]);
+"""What the project holds now, computed at run time (decision 8, first form):
+the file tree, the entry file in full, and a one-line outline of every other Jac file."""
+def project_view(project_dir: str, writes: list[str]) -> dict {
+    entry = entry_of(project_dir);
+    # Files shown in full: the entry file always; the task's own files too while they fit FULL_TEXT_CHARS.
+    full_set = [entry];
+    mine = [w for w in writes if w != entry and os.path.isfile(os.path.join(project_dir, w))];
+    shown = [entry] + mine;
+    size = sum([os.path.getsize(os.path.join(project_dir, w)) for w in shown if os.path.isfile(os.path.join(project_dir, w))]);
+    if size <= FULL_TEXT_CHARS { full_set = shown; }
+    out = "Project files:";
+    for rel in project_files(project_dir) {
+        note = "";
+        if rel in full_set { note = "  (shown below)"; }
+        elif rel.endswith(".jac") { note = "  : " + outline(os.path.join(project_dir, rel)); }
+        out += f"\n  {rel}{note}";
     }
-    return out;
+    for rel in full_set {
+        full = os.path.join(project_dir, rel);
+        if not os.path.isfile(full) { continue; }
+        rows = open(full).read().rstrip("\n").split("\n");
+        out += f"\n\n--- {rel}\n" + "\n".join([f"{i + 1}│ {ln}" for (i, ln) in enumerate(rows)]);
+    }
+    return {"text": out + "\n\nRead a file before you change it, unless it is shown above.", "seen": full_set};
 }
 
 walker Session {
@@ -49,6 +64,7 @@ walker Session {
     has port: int = 8795;
     has dry: bool = False;
     has guide: str = "";
+    has seen: list[str] = [];
 
     """Build the messages for the next request: failures folded, except the newest one."""
     def view -> list[dict] {
@@ -72,7 +88,9 @@ walker Session {
 
     can open with Task entry {
         self.writes = here.writes;
-        self.card = f"Task {here.tid}: {here.title}\nGoal: {here.goal}\nYou may write: {', '.join(here.writes)}\n\n" + project_view(self.project_dir, here.writes);
+        pv = project_view(self.project_dir, here.writes);
+        self.card = f"Task {here.tid}: {here.title}\nGoal: {here.goal}\nYou may write: {', '.join(here.writes)}\n\n" + pv["text"];
+        self.seen = pv["seen"];
         if self.guide { self.card += "\n\nReference for writing the page:\n" + self.guide; }
         here.status = "active";
         self.log.at({"session": self.sid, "task": here.tid});
@@ -103,6 +121,7 @@ walker Session {
             }
             self.log.event("reply", "model", {"id": mid, "raw": out["text"], "call": call, "prompt_tokens": out["prompt_tokens"], "out_tokens": out["out_tokens"]});
             if call["ok"] {
+                tpath = str(call["args"].get("path", ""));
                 # Only failures since the last file change count: after a change the same call can succeed.
                 changed = [i for (i, p) in enumerate(self.turns) if p["status"] == "ok" and p["tool"] in ["write", "edit"]];
                 since = self.turns[(changed[-1] + 1 if changed else 0):];
@@ -111,8 +130,12 @@ walker Session {
                     res = {"status": "refused", "target": str(call["args"].get("path", "")), "code": "repeat",
                            "message": f"identical to {dup[-1]['mid']}, which failed",
                            "text": f"refused: this call is identical to {dup[-1]['mid']}, which failed with: {dup[-1]['code']} {dup[-1]['message']}. Sending it again cannot work. Change the content."};
+                } elif call["tool"] in ["write", "edit"] and tpath not in self.seen and os.path.isfile(os.path.join(self.project_dir, tpath)) {
+                    res = {"status": "refused", "target": tpath, "code": "not-read", "message": "read the file first",
+                           "text": f"refused: you have not read {tpath}. Read it first, then change it."};
                 } else {
                     res = run_tool(self.project_dir, self.writes, call["tool"], call["args"]);
+                    if call["tool"] in ["read", "write"] and res["status"] != "refused" and tpath not in self.seen { self.seen.append(tpath); }
                 }
                 if call["tool"] == "submit" and res["status"] == "ok" and self.actions {
                     for r in run_actions(self.project_dir, self.port, self.actions) {

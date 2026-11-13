@@ -67,9 +67,41 @@ def imports_of(path: str) -> dict {
     return found;
 }
 
+"""The entry file named in jac.toml (`entry-point`); main.jac if the project does not say."""
+def entry_of(project_dir: str) -> str {
+    path = os.path.join(project_dir, "jac.toml");
+    if os.path.isfile(path) {
+        m = re.search(r'^\s*entry-point\s*=\s*"([^"]+)"', open(path).read(), re.M);
+        if m { return m.group(1); }
+    }
+    return "main.jac";
+}
+
+"""Project files, relative paths, skipping build output and hidden folders."""
+def project_files(project_dir: str) -> list[str] {
+    found: list[str] = [];
+    for (base, dirs, files) in os.walk(project_dir) {
+        dirs[:] = sorted([d for d in dirs if not d.startswith(".") and d not in ["node_modules", "dist", "build", "__pycache__"]]);
+        for f in sorted(files) {
+            if not f.startswith(".") { found.append(os.path.relpath(os.path.join(base, f), project_dir)); }
+        }
+    }
+    return found;
+}
+
+"""One line saying what a Jac file declares at top level (text scan; to be replaced by the AST walk)."""
+def outline(path: str) -> str {
+    names: list[str] = [];
+    for m in re.finditer(r"^(async\s+)?(def|walker|node|edge|obj|enum|glob)(:pub|:priv)?\s+(\w+)", open(path).read(), re.M) {
+        names.append(f"{m.group(2)}{m.group(3) or ''} {m.group(4)}");
+    }
+    return ", ".join(names) if names else "(no declarations)";
+}
+
 """Wiring rule (compiler probe section 5): an endpoint the client imports must be named in the entry file's import list.
 Reports every missing name at once, with the full import line to write for each module."""
-def wiring(project_dir: str, entry_file: str = "main.jac") -> dict {
+def wiring(project_dir: str, entry_file: str = "") -> dict {
+    if not entry_file { entry_file = entry_of(project_dir); }
     entry_imports = imports_of(os.path.join(project_dir, entry_file));
     missing: dict = {};
     for fname in sorted(os.listdir(project_dir)) {

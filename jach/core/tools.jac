@@ -2,7 +2,7 @@
 import os;
 import re;
 import difflib;
-import from check { first_error, wiring }
+import from check { first_error, wiring, entry_of }
 
 glob PREFIX = r"^\s*>?\d+│ ?";
 
@@ -35,7 +35,7 @@ def after_change(project_dir: str, path: str, done: str) -> dict {
     chk = first_error(project_dir, path) if path.endswith(".jac") else {"clean": True, "text": "", "code": "", "message": ""};
     if chk["clean"] {
         w = wiring(project_dir);
-        note = "" if w["clean"] else f"\nstill to do: main.jac must have this line, or the page's calls return 405:\n{w['fix']}";
+        note = "" if w["clean"] else f"\nstill to do: {entry_of(project_dir)} must have this line, or the page's calls return 405:\n{w['fix']}";
         return result("ok", path, f"{done}\ncheck: clean{note}");
     }
     return result("failed", path, f"{done}\n{chk['text']}", chk["code"], chk["message"]);
