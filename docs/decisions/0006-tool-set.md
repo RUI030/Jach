@@ -74,6 +74,29 @@ One answer per name, from a fixed set of kinds:
 | Package export | Installed packages | `useState`: exported by `react`. |
 | Unknown | None of the above | `DeleteTask`: not defined anywhere. Closest names: `ToggleTask`, `AddTask`. |
 
+For a project name the answer is a hover card, like the one an IDE shows:
+
+```
+walker:pub AddTask            tasks.jac    planned (T03)
+  "Create a task under root."
+  has title: str
+  has level: Level = Level.LOW
+  can make with Root entry
+
+uses:     enum Level { LOW = 1, HIGH = 2 }
+          node Task { has title: str; has done: bool = False; }
+used by:  pages/index.jac
+```
+
+| Part | Content |
+|---|---|
+| Header | Kind, access tag, name, file, state |
+| Body | Docstring; every field with type and default; every method and ability with its full signature |
+| `uses` | The types it refers to, each expanded one level |
+| `used by` | Files that use it |
+
+Probe on 0.36.1: `jac code symbol NAME --text` and `jac code slice NAME` give most of this already (fields with types, referenced types, use sites), but drop field defaults, method parameters, ability entry clauses and enum members. The card is therefore rendered by our own AST walk ([compiler probe](../research/compiler-probe-0.36.1.md) section 2), which has them.
+
 ### Keyword note on errors
 
 When an error sits on a token that is a Jac keyword or built-in, the harness adds the `lookup` answer for that word to the error result. The model can then judge whether it misused the word or meant a name.
