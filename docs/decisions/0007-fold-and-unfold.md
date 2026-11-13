@@ -67,7 +67,7 @@ Folding rules:
 No text is composed. Each tool returns two things: the full result for the model, and a record with fixed fields. One function renders any record as a line.
 
 ```
-[id] <tool> <target> -> <status>[: <code> <where>]
+[id] <tool> <target> -> <status>[: <code> <message>]
 ```
 
 | Field | Filled from |
@@ -77,23 +77,26 @@ No text is composed. Each tool returns two things: the full result for the model
 | `target` | The tool's main parameter (table below) |
 | `status` | `ok`, `failed`, `refused` |
 | `code` | First error code from the compiler, or a fixed reason word from the harness |
-| `where` | File and line of that first error, or the failing test or step |
+| `message` | The compiler's own message for that error, copied as is, first line only, cut at a fixed length |
 
-| Tool | `target` | `code` and `where` on failure | Example |
+- **No line numbers in a folded line.** The file has changed since, so an old line number points at the wrong code. Line numbers appear only in the live, unfolded error.
+- **No source code in a folded line.** The message says what was wrong; the failed code itself is what small models copy.
+
+| Tool | `target` | On failure | Example |
 |---|---|---|---|
-| `read` | path and line range | `not-found` | `[m4] read tasks.jac 1-40 -> ok` |
-| `write` | path | first check error | `[m9] write tasks.impl.jac -> failed: E1053 tasks.impl.jac:14` |
-| `edit` | path and the line range changed | first check error, or `old-not-found`, `old-not-unique`, `no-change` | `[m12] edit tasks.impl.jac 10-16 -> failed: old-not-found` |
+| `read` | path | `not-found` | `[m4] read tasks.jac -> ok` |
+| `write` | path | first check error | `[m9] write tasks.impl.jac -> failed: E1053 Cannot assign str to int` |
+| `edit` | path | first check error, or `old-not-found`, `old-not-unique`, `no-change` | `[m12] edit tasks.impl.jac -> failed: old-not-found` |
 | `search` | the text | none | `[m5] search "Add" -> ok (3 hits)` |
 | `map`, `guide` | name or topic | `unknown` | `[m6] map AddTask -> ok (planned)` |
-| `install` | package names | `install-error` | `[m2] install lucide-react -> ok` |
-| `test` | test names, or `all` | first failing test | `[m15] test all -> failed: test_toggle_task (2 of 3 pass)` |
-| `browse` | action name | first failing step | `[m20] browse "add a task" -> failed: expect "Buy milk"` |
+| `install` | package names | `install-error` and the installer's first error line | `[m2] install lucide-react -> ok` |
+| `test` | test names, or `all` | first failing test and its assertion message | `[m15] test all -> failed: test_toggle_task expected True, got False (2 of 3 pass)` |
+| `browse` | action name | first failing step, plus the first page error if any | `[m20] browse "add a task" -> failed: expect "Buy milk"; POST /walker/AddTask 405` |
 | `add_task`, `drop_task`, `pick` | task id | failing plan check | `[m3] add_task T03 -> ok` |
 | `submit` | step or phase | first failing gate item | `[m22] submit Server -> ok` |
 | `unfold` | the id | `unknown-id` | `[m18] unfold m9 -> ok` |
 
-A block is rendered the same way from the step's records: files written, names implemented, number of `failed` turns, the distinct error codes met, final status.
+A block is rendered the same way from the step's records: files written, names implemented, number of `failed` turns, the distinct error codes met with their messages, final status.
 
 ## 4. What is never folded
 
@@ -145,6 +148,19 @@ Tokens per request and per step; number of folds; `unfold` calls and whether the
 - A finished task shows only that it is done and what it was for.
 - Failures are folded; the model sees the call and its status, and opens the detail only with `unfold`. The newest failure stays in full.
 - Reasoning is not kept in history.
+
+## 9. Hand-over text
+
+The model writes no comment when a task finishes or when another session takes over.
+
+| Moment | What the next context gets | Written by |
+|---|---|---|
+| Task finished | The card line; the code and passing checks are the record | Harness |
+| Fresh restart of a step | Task card, current file contents, the current first error, the folded lines of earlier attempts | Harness |
+| Admin steps in | The same, plus the right to unfold everything, including the stored reasoning | Harness |
+| `stuck` or `replan` | The same, plus the `reason` the model gave in the call | Model (one parameter) |
+
+The model's running theory of the bug is deliberately not carried over: a fresh start works because the stale theory is gone.
 
 ## 9. Training view
 

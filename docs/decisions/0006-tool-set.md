@@ -66,7 +66,8 @@ The model never counts lines.
 - `read` prints the number in front of every line.
 - `edit` finds its place by matching text, not by number.
 - An error result includes the source lines around the error, with the reported line marked and two lines before it (the compiler often reports one line late). The model reads the code, not the number.
-- Line ranges in fold lines (`edit tasks.impl.jac 10-16`) are computed by the harness and are informational.
+- Folded lines carry no line numbers; they go stale when the file changes.
+- Known risk: the model copies the number prefix from `read` output into `edit` or `write`. The prefix uses a separator that is not valid Jac (`14│ `), `edit` strips it from `old` and `new` before matching, and `write` refuses content whose lines all start with it.
 
 ## 3. Done by the harness, not by a tool
 
