@@ -47,7 +47,7 @@ They are listed in the order they should be decided, because earlier ones constr
 | 7 | Fold and unfold: what a folded turn keeps, how unfold is addressed | 3 | Decided: [0007](decisions/0007-fold-and-unfold.md) |
 | 8 | Dynamic Jac information: what is loaded, when, and from where | 3 | Open |
 | 9 | System prompt | 1, 3 | Open |
-| 10 | Stall detection and recovery (repeated calls, repair budget) | 5 | Proposed: [0010](decisions/0010-stall-detection.md) |
+| 10 | Stall detection and recovery (repeated calls, repair budget) | 5 | Decided: [0010](decisions/0010-stall-detection.md) |
 | 10a | Admin escalation: triggers, what the admin may do, how control returns | 4, 5 | Open |
 | 11 | Build on pi or from scratch | all | Decided: scratch, in Jac. [0011](decisions/0011-build-from-scratch-in-jac.md) |
 | 12 | Trajectory log format | 6 | Decided: [0012](decisions/0012-run-log-format.md) |
