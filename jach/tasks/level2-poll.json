@@ -1,0 +1,63 @@
+{
+  "id": "level2-poll",
+  "level": 2,
+  "title": "Poll",
+  "goal": "Turn the page into a poll with the question \"Tea or coffee?\". There are two buttons, labelled \"Vote tea\" and \"Vote coffee\". The page shows the stored counts as \"Tea: N\" and \"Coffee: N\". Clicking a button adds one vote on the server and the page shows the new counts. Stored counts are shown when the page loads. Both start at 0. The counts are stored on the server in a `Poll` node connected to root, with fields `tea: int` and `coffee: int`. You may remove the Ping button.",
+  "writes": [
+    "server.jac",
+    "frontend.jac",
+    "main.jac"
+  ],
+  "actions": [
+    {
+      "name": "vote",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Tea: 0"
+        ],
+        [
+          "click",
+          "Vote tea"
+        ],
+        [
+          "expect",
+          "Tea: 1"
+        ],
+        [
+          "click",
+          "Vote coffee"
+        ],
+        [
+          "click",
+          "Vote coffee"
+        ],
+        [
+          "expect",
+          "Coffee: 2"
+        ]
+      ]
+    },
+    {
+      "name": "votes are kept",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Tea: 1"
+        ],
+        [
+          "expect",
+          "Coffee: 2"
+        ]
+      ]
+    }
+  ]
+}

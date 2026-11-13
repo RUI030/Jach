@@ -133,6 +133,21 @@ def descriptions(project_dir: str) -> dict {
     return {"clean": True, "text": "", "code": "", "message": ""};
 }
 
+"""Data rule (decision 0016): a file with public endpoints keeps its data on the graph, not in module variables."""
+def data_style(project_dir: str) -> dict {
+    for rel in project_files(project_dir) {
+        if not rel.endswith(".jac") { continue; }
+        src = open(os.path.join(project_dir, rel)).read();
+        if not re.search(r"(def|walker):pub", src) or "JsxElement" in src { continue; }
+        m = re.search(r"^glob\s+([a-z_]\w*)", src, re.M);
+        if m {
+            text = f"check failed: DATA `glob {m.group(1)}` in {rel} is lost on restart. Store it in a node connected to root.";
+            return {"clean": False, "text": text, "code": "DATA", "message": f"`glob {m.group(1)}` in {rel}: store it in a node"};
+        }
+    }
+    return {"clean": True, "text": "", "code": "", "message": ""};
+}
+
 """Wiring rule (compiler probe section 5): an endpoint the client imports must be named in the entry file's import list.
 Reports every missing name at once, with the full import line to write for each module."""
 def wiring(project_dir: str, entry_file: str = "") -> dict {

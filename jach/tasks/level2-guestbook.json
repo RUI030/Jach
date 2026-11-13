@@ -1,0 +1,53 @@
+{
+  "id": "level2-guestbook",
+  "level": 2,
+  "title": "Guestbook",
+  "goal": "Turn the page into a guestbook. The page has a text input with the placeholder \"Your name\", a text input with the placeholder \"Message\", a button labelled \"Sign\", and the list of stored entries. Entries are stored on the server as `Entry` nodes connected to root, with fields `name: str` and `message: str`. Clicking Sign stores an entry and shows it in the list as \"name: message\", then clears both inputs. Stored entries are shown when the page loads. You may remove the Ping button.",
+  "writes": [
+    "server.jac",
+    "frontend.jac",
+    "main.jac"
+  ],
+  "actions": [
+    {
+      "name": "sign",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "fill",
+          "Your name",
+          "Ada"
+        ],
+        [
+          "fill",
+          "Message",
+          "Hello all"
+        ],
+        [
+          "click",
+          "Sign"
+        ],
+        [
+          "expect",
+          "Ada: Hello all"
+        ]
+      ]
+    },
+    {
+      "name": "entries are kept",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Ada: Hello all"
+        ]
+      ]
+    }
+  ]
+}

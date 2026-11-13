@@ -1,0 +1,92 @@
+{
+  "id": "level3-stopwatch",
+  "level": 3,
+  "title": "Stopwatch",
+  "goal": "Turn the page into a stopwatch. The page shows the elapsed time as \"Elapsed: S.S s\" with one decimal, starting at \"Elapsed: 0.0 s\", and buttons labelled \"Start\", \"Stop\", \"Reset\" and \"Save lap\". Start makes the time count up; Stop freezes it; Reset stops it and sets it back to 0.0. Save lap stores the current elapsed time on the server as a `Lap` node connected to root with a field `seconds: float`. Stored laps are listed as \"Lap 1\", \"Lap 2\", and so on, in the order saved, each followed by its time. Stored laps are shown when the page loads. You may remove the Ping button.",
+  "writes": [
+    "server.jac",
+    "frontend.jac",
+    "main.jac"
+  ],
+  "actions": [
+    {
+      "name": "run and stop",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Elapsed: 0.0 s"
+        ],
+        [
+          "click",
+          "Start"
+        ],
+        [
+          "wait",
+          "2"
+        ],
+        [
+          "click",
+          "Stop"
+        ],
+        [
+          "expect_not",
+          "Elapsed: 0.0 s"
+        ]
+      ]
+    },
+    {
+      "name": "reset and lap",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "click",
+          "Start"
+        ],
+        [
+          "wait",
+          "1"
+        ],
+        [
+          "click",
+          "Stop"
+        ],
+        [
+          "click",
+          "Save lap"
+        ],
+        [
+          "expect",
+          "Lap 1"
+        ],
+        [
+          "click",
+          "Reset"
+        ],
+        [
+          "expect",
+          "Elapsed: 0.0 s"
+        ]
+      ]
+    },
+    {
+      "name": "laps are kept",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Lap 1"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "id": "level2-checkin",
+  "level": 2,
+  "title": "Check-in sheet",
+  "goal": "Turn the page into a check-in sheet. The server holds three people as `Person` nodes connected to root, with fields `name: str` and `present: bool`: Ada, Ben and Cy, all absent at first. They are created the first time the list is requested and never duplicated. The page shows a table with one row per person: the name, the status as \"NAME: absent\" or \"NAME: present\", and a button labelled \"Check in NAME\". Clicking the button marks that person present on the server and the row shows \"NAME: present\". The stored status is shown when the page loads. You may remove the Ping button.",
+  "writes": [
+    "server.jac",
+    "frontend.jac",
+    "main.jac"
+  ],
+  "actions": [
+    {
+      "name": "check in",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Ada: absent"
+        ],
+        [
+          "expect",
+          "Ben: absent"
+        ],
+        [
+          "click",
+          "Check in Ben"
+        ],
+        [
+          "expect",
+          "Ben: present"
+        ],
+        [
+          "expect",
+          "Ada: absent"
+        ]
+      ]
+    },
+    {
+      "name": "status is kept",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Ben: present"
+        ],
+        [
+          "expect",
+          "Cy: absent"
+        ]
+      ]
+    }
+  ]
+}

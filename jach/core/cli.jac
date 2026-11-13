@@ -43,6 +43,13 @@ with entry {
     log.event("run", "harness", {"settings": {"dry": dry, "guide": os.environ.get("JACH_GUIDE", ""), "browser_feedback": feedback}});
     port = int(os.environ.get("JACH_PORT", "8795"));
     admin = os.environ.get("JACH_ADMIN", "");
+    admin_only = os.environ.get("JACH_ADMIN_ONLY", "") == "1";
+    if admin_only {
+        card = f"Task T01: {spec['title']}\nGoal: {goal}\nYou may write: {', '.join(spec['writes'])}";
+        fix = takeover(log, admin or "codex", project_dir, card, spec["writes"], "Nothing is written yet; the project is the unchanged template.", port, spec["actions"]);
+        print("RESULT", spec["id"], "reference=" + ("ok:" + str(fix["attempts"]) if fix["ok"] else "failed"));
+        sys.exit(0);
+    }
     w = t spawn Session(server=server, log=log, project_dir=project_dir, actions=spec["actions"] if feedback else [], dry=dry, guide=guide, port=port);
     log.event("run", "harness", {"outcome": w.outcome, "turns": w.n});
     print(f"outcome: {w.outcome} | turns: {w.n} | log: {run_dir}/events.jsonl");

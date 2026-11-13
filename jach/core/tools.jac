@@ -2,7 +2,7 @@
 import os;
 import re;
 import difflib;
-import from check { first_error, wiring, entry_of, descriptions }
+import from check { first_error, wiring, entry_of, descriptions, data_style }
 
 glob PREFIX = r"^\s*>?\d+│ ?";
 
@@ -49,6 +49,7 @@ def run_tool(project_dir: str, writes: list[str], name: str, args: dict) -> dict
         chk = first_error(project_dir, ".");
         if chk["clean"] { chk = wiring(project_dir); }
         if chk["clean"] { chk = descriptions(project_dir); }
+        if chk["clean"] { chk = data_style(project_dir); }
         if chk["clean"] { return result("ok", "step", "check: clean"); }
         return result("failed", "step", chk["text"], chk["code"], chk["message"]);
     }

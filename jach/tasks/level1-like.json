@@ -1,0 +1,55 @@
+{
+  "id": "level1-like",
+  "level": 1,
+  "title": "Like button",
+  "goal": "Turn the page into a like counter. The page shows the text \"Likes: N\", where N is the number of likes stored on the server, and a button labelled \"Like\". Clicking Like adds one to the stored number and the page shows the new number. The stored number is shown when the page loads. It starts at 0. The number is stored on the server in a `Counter` node connected to root, with a field `likes: int`. You may remove the Ping button.",
+  "writes": [
+    "server.jac",
+    "frontend.jac",
+    "main.jac"
+  ],
+  "actions": [
+    {
+      "name": "like once",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Likes: 0"
+        ],
+        [
+          "click",
+          "Like"
+        ],
+        [
+          "expect",
+          "Likes: 1"
+        ]
+      ]
+    },
+    {
+      "name": "count is kept",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Likes: 1"
+        ],
+        [
+          "click",
+          "Like"
+        ],
+        [
+          "expect",
+          "Likes: 2"
+        ]
+      ]
+    }
+  ]
+}

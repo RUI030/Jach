@@ -47,6 +47,7 @@ def admin_prompt(card: str, writes: list[str], failure: str, actions: list[dict]
         + "Rules:\n"
         + f"- Change only these files: {', '.join(writes)}.\n"
         + "- Every file and every top-level declaration needs a one-sentence description directly above it saying what it does. No Args/Returns lists.\n"
+        + "- Idiomatic Jac: stored data lives in nodes connected to root, never in module variables; the app is restarted during the test.\n"
         + "- Keep what already works. Do not add features the task does not ask for.\n"
         + "- Read the Jac skills before writing (jac-core-cheatsheet, jac-cl-components, jac-fullstack-patterns, jac-debugging), or run `jac guide <name>`.\n"
         + "- Verify with `jac check .`. Do not start a server; the harness does the browser test.\n"
