@@ -49,7 +49,7 @@ They are listed in the order they should be decided, because earlier ones constr
 | 9 | System prompt | 1, 3 | Open |
 | 10 | Stall detection and recovery (repeated calls, repair budget) | 5 | Open |
 | 10a | Admin escalation: triggers, what the admin may do, how control returns | 4, 5 | Open |
-| 11 | Build on pi or from scratch | all | Open; depends on 1 to 3 |
+| 11 | Build on pi or from scratch | all | Proposed: [0011](decisions/0011-build-from-scratch-in-jac.md) |
 | 12 | Trajectory log format | 6 | Open |
 | 13 | Which Jac version the harness, training data and evaluation all target | all | Decided: 0.36. [0003](decisions/0003-target-jac-0-36.md) |
 | 14 | Evaluation ladder and the definition of a pass | 5, 6 | Open |
