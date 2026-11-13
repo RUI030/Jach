@@ -1,6 +1,6 @@
 # 0011: Build from scratch, in Jac
 
-- **Status:** Proposed, 2026-11-12. Not yet accepted.
+- **Status:** Accepted, 2026-11-12
 - **Layer:** all
 - **Builds on:** [0001](0001-flow-control-hybrid-state-machine.md) to [0007](0007-fold-and-unfold.md), [pi research](../research/pi-harness.md), [spike](../../prototypes/jac-spike/)
 
@@ -67,7 +67,7 @@ flowchart LR
 | Browser | `jac browse`, dev server | Subprocess |
 | Log | Append-only JSONL, one line per event | The source of truth. The graph can be rebuilt from it. Walkers with `report` produce the model context, the training samples and the statistics. |
 | Admin | The large model | `by llm` is acceptable here |
-| UI | Headless first; then a simple interactive front end | The core has no UI code (0002) |
+| UI | CLI and web (section 5) | The core has no UI code (0002) |
 
 ## 4. Risks
 
@@ -78,7 +78,19 @@ flowchart LR
 | Jac check time grows with code size (about 1 s per 1,000 to 1,500 lines) | Keep harness modules small; check the edited file |
 | Jac tooling is younger than Python's | Python libraries are importable from Jac where needed |
 
-## 5. Open points
+## 5. Two front ends on one core
 
-1. **Interactive UI.** Web page in Jac, or a plain terminal prompt first?
-2. **Reuse from jacBuilder.** Which parts are worth taking (browser control, sandbox, templates)?
+| Front end | Started with | For |
+|---|---|---|
+| CLI | `jac run` on the CLI entry file | Batch runs, trajectory generation, scripting, a terminal prompt for interactive use |
+| Web | `jac start` on `main.jac` | Interactive use: the core's operations exposed as endpoints, with a page that shows the work tree, the current task and the log |
+
+- Both call the same core functions. Neither holds any flow logic.
+- The CLI comes first; it is what trajectory generation needs.
+- A run takes minutes, so the web front end starts a run and then streams or polls its events from the log. It does not wait on one request.
+
+## 6. Decided in discussion (2026-11-12)
+
+- Build from scratch in Jac.
+- Both front ends, CLI first.
+- jacBuilder is not looked at for now.
