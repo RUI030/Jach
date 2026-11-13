@@ -9,6 +9,7 @@ import from tree { Project, Feature, Task, Step, Has }
 import from log { RunLog }
 import from session { Session }
 import from browse { run_actions }
+import from admin { takeover }
 
 with entry {
     here_dir = os.path.dirname(os.path.abspath(__file__));
@@ -40,16 +41,25 @@ with entry {
         guide = subprocess.run(["jac", "guide", os.environ["JACH_GUIDE"]], capture_output=True, text=True).stdout;
     }
     log.event("run", "harness", {"settings": {"dry": dry, "guide": os.environ.get("JACH_GUIDE", ""), "browser_feedback": feedback}});
-    w = t spawn Session(server=server, log=log, project_dir=project_dir, actions=spec["actions"] if feedback else [], dry=dry, guide=guide);
+    port = int(os.environ.get("JACH_PORT", "8795"));
+    admin = os.environ.get("JACH_ADMIN", "");
+    w = t spawn Session(server=server, log=log, project_dir=project_dir, actions=spec["actions"] if feedback else [], dry=dry, guide=guide, port=port);
     log.event("run", "harness", {"outcome": w.outcome, "turns": w.n});
     print(f"outcome: {w.outcome} | turns: {w.n} | log: {run_dir}/events.jsonl");
+    outcome = w.outcome;
+    if admin and outcome.startswith("stalled") {
+        failure = w.turns[-1]["result"] if w.turns else "";
+        fix = takeover(log, admin, project_dir, w.card, spec["writes"], failure, port, spec["actions"]);
+        outcome = f"admin-fixed:{fix['attempts']}" if fix["ok"] else "failed";
+        log.event("run", "harness", {"outcome": outcome});
+    }
     log.at({"session": "", "task": "T01", "step": "e2e"});
-    e2e = run_actions(project_dir, 8795, spec["actions"]);
+    e2e = run_actions(project_dir, port, spec["actions"]);
     for r in e2e {
         log.event("tool", "harness", {"tool": "browse", "target": r["name"], "status": r["status"], "message": r["message"], "result": r["text"]});
         print(f"e2e {r['name']}: {r['status']} {r['message']}");
     }
     passed = all([r["status"] == "ok" for r in e2e]);
     log.event("run", "harness", {"e2e": "passed" if passed else "failed"});
-    print("RESULT", spec["id"], "harness=" + w.outcome, "browser=" + ("passed" if passed else "failed"), "turns=" + str(w.n));
+    print("RESULT", spec["id"], "harness=" + outcome, "browser=" + ("passed" if passed else "failed"), "turns=" + str(w.n));
 }
