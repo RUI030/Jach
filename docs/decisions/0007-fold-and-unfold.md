@@ -57,7 +57,7 @@ Folding rules:
 | A `failed` or `refused` turn is folded as soon as the model makes its next call. Only the newest failure is ever shown in full. | The model needs the current error to fix it. Older errors take space and invite copying. The line still says what was called and that it failed. |
 | A `read` or `write` of a file that has since been read or written again is folded | Only the newest view of a file is true |
 | An `ok` result of `guide`, `map`, `search`, `test` or `browse` older than the last *K* turns is folded | Old output is rarely needed again |
-| The model's reasoning is removed from every turn once its tool call has been made | It is stored for the log, not shown again. To verify: this should match how the chat template used in training treats earlier reasoning. |
+| The model's reasoning is removed from every turn once its tool call has been made | It is stored for the log, not shown again. The Ornith template keeps all earlier reasoning by default ([chat-templates](../research/chat-templates.md)), so training trajectories must be rendered the same way as run time: earlier turns with an empty think block. |
 
 - *K* is not guessed. The harness starts with all `ok` turns Full inside a step and we lower *K* from measurement (tokens per step against pass rate). The published best values differ by harness (10 and 58 in the two measured in the JetBrains study), so no outside number transfers.
 - Reasoning that runs away is a separate problem, handled by a budget on generation (decisions 10 and 15), not by folding.

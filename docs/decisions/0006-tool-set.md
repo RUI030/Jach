@@ -59,6 +59,15 @@ Notes on the two editing tools:
 - `edit` replaces one exact piece of text. Matching ignores differences in indentation and trailing spaces.
 - An `edit` that fails says why and helps: `old` not found returns the closest text in the file; `old` found more than once returns the line numbers; `old` equal to `new` is refused. (Measured on v1.35: 75 identical old/new, 66 not found.)
 
+### Line numbers
+
+The model never counts lines.
+
+- `read` prints the number in front of every line.
+- `edit` finds its place by matching text, not by number.
+- An error result includes the source lines around the error, with the reported line marked and two lines before it (the compiler often reports one line late). The model reads the code, not the number.
+- Line ranges in fold lines (`edit tasks.impl.jac 10-16`) are computed by the harness and are informational.
+
 ## 3. Done by the harness, not by a tool
 
 | Action | When |

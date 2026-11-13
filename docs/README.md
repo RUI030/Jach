@@ -16,6 +16,7 @@
 - [research/existing-harnesses-and-model.md](research/existing-harnesses-and-model.md): jacBuilder, the removed `jac ai`, jac-mini-coder, and the fine-tuned model's format and failure modes
 - [research/model-status-2026-11-11.md](research/model-status-2026-11-11.md): browser-verified results for v1.35 and the 1112 adapter, and where they fail
 - [research/compiler-probe-0.36.1.md](research/compiler-probe-0.36.1.md): experiments on what the 0.36.1 compiler can detect and report; which failure modes are mechanically catchable
+- [research/chat-templates.md](research/chat-templates.md): how the Qwen 3.5, Ornith 1.5 and JacLLM templates render earlier reasoning;
 - [research/jac-cli-surface.md](research/jac-cli-surface.md): the jac 0.36.1 commands a harness would wrap
 
 ## The six layers of a harness
