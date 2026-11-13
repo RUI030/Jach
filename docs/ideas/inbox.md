@@ -75,3 +75,4 @@
 | I-069 | 2026-11-11 | Feed the model the server log's source-mapped client errors as its main runtime signal | compiler probe | 6 | new |
 | I-070 | 2026-11-12 | `lookup` tool: say what a name is (keyword, built-in, file, function, type, package export, unknown) | R | 6 | decided |
 | I-071 | 2026-11-12 | When an error sits on a reserved word, add what that word means so the model can judge misuse. Probe: `node = "a"` gives an error that does not mention the keyword | R | 6, 8 | decided |
+| I-072 | 2026-11-12 | Write the harness itself in Jac: work tree as nodes, flow as walkers, by-llm for model calls | R | 11 | discussing |
