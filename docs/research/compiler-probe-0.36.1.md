@@ -177,3 +177,21 @@ Consequence: a check after every write is cheap only while files are small and t
 ## 10. Coming in 0.38 (read in source, not run)
 
 `jac arch graph`, E2085 for `await`, W6009 (a client binding of a server endpoint is async), `jac check -j` (parallel).
+
+## 11. Stale read after a write (client read cache)
+
+Probed 2026-11-13. The client runtime caches reader responses for 60 s and invalidates them when a writer is called, using an effects table the compiler puts in the page (`endpointEffects` in the `__jac_init__` element). A reader is invalidated when the writer touches `*` or the two "touches" lists share a name (`__overlaps` in `client_runtime_core.js`).
+
+| Endpoint | Writer? | Touches |
+|---|---|---|
+| `def:pub` that reads (`[root -->][?:Item]`, `[root -->[?:Item]]`, a comprehension over either) | No | `*` |
+| `def:pub` that creates (`root ++> Item(...)`), returning the node or nothing | Yes | `Item` |
+| `def:pub` that updates or deletes inside a loop | Yes | `*` |
+| `walker:pub` that reads Item nodes from root | No | `Item`, `Root` |
+| `walker:pub` that creates an Item at root | Yes | `Item`, `Root` |
+
+- A `def:pub` reader has `*`; a `def:pub` creator has `Item`. `*` on the reader side is compared as a plain name, so the lists do not overlap and **the reader's cache is not cleared**. The page calls the writer, calls the reader again, and gets the cached list without the new item. The server itself answers correctly.
+- Update and delete written as `def:pub` do clear it (they touch `*`). So does any walker pair.
+- This contradicts the `jac-fullstack-patterns` skill, which calls write-then-refetch the canonical handler. It looks like a defect in 0.36.1, worth reporting upstream.
+
+Ways that work on 0.36.1: use the value the create call returns to update the page state; or make the list and the create both walkers.
