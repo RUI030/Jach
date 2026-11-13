@@ -2,7 +2,8 @@
 import from tree { Task, Step, Turn, Has, Then }
 import from log { RunLog }
 import from tools { SCHEMAS, run_tool }
-import from model { render, complete, parse_call }
+import from model { render, complete, parse_call, is_repeating }
+import from browse { run_actions }
 
 glob SYSTEM = "You are building a Jac web app. Work only on the task you are given.\n"
     + "Call exactly one tool in each reply. After every write or edit the harness checks the file and shows the first error.\n"
@@ -30,6 +31,10 @@ walker Session {
     has turns: list[dict] = [];
     has n: int = 0;
     has outcome: str = "";
+    has actions: list[dict] = [];
+    has port: int = 8795;
+    has dry: bool = False;
+    has guide: str = "";
 
     """Build the messages for the next request: failures folded, except the newest one."""
     def view -> list[dict] {
@@ -54,6 +59,7 @@ walker Session {
     can open with Task entry {
         self.writes = here.writes;
         self.card = f"Task {here.tid}: {here.title}\nGoal: {here.goal}\nYou may write: {', '.join(here.writes)}\nStart by reading the files you need.";
+        if self.guide { self.card += "\n\nReference for writing the page:\n" + self.guide; }
         here.status = "active";
         self.log.at({"session": self.sid, "task": here.tid});
         self.log.event("task", "harness", {"status": "active", "card": self.card});
@@ -71,13 +77,39 @@ walker Session {
             shown = [{"id": t["mid"], "level": ("line" if (t["status"] != "ok" and i != len(self.turns) - 1) else "full")} for (i, t) in enumerate(self.turns)];
             rseq = self.log.event("request", "harness", {"shown": shown, "prompt_chars": len(prompt)});
             self.log.prompt(rseq, prompt);
-            out = complete(self.server, prompt, 4096);
+            retry = len(self.turns) > 0 and self.turns[-1]["status"] != "ok";
+            out = complete(self.server, prompt, 4096, 0.7 if retry else 0.2, self.dry);
             self.n += 1;
             mid = f"m{self.n}";
-            call = parse_call(out["text"]) if not out["truncated"] else {"ok": False, "error": "the reply was cut off at the output limit"};
+            call = parse_call(out["text"]);
+            if not call["ok"] and is_repeating(out["text"]) {
+                call = {"ok": False, "error": "the reply repeated the same lines over and over until it was cut off. Write a shorter file with only what the task asks for"};
+            } elif not call["ok"] and out["truncated"] {
+                call = {"ok": False, "error": "the reply was cut off at the output limit. Write less in one call"};
+            }
             self.log.event("reply", "model", {"id": mid, "raw": out["text"], "call": call, "prompt_tokens": out["prompt_tokens"], "out_tokens": out["out_tokens"]});
             if call["ok"] {
-                res = run_tool(self.project_dir, self.writes, call["tool"], call["args"]);
+                # Only failures since the last file change count: after a change the same call can succeed.
+                changed = [i for (i, p) in enumerate(self.turns) if p["status"] == "ok" and p["tool"] in ["write", "edit"]];
+                since = self.turns[(changed[-1] + 1 if changed else 0):];
+                dup = [p for p in since if p["status"] != "ok" and p["call"] and p["tool"] == call["tool"] and p["args"] == call["args"]];
+                if dup {
+                    res = {"status": "refused", "target": str(call["args"].get("path", "")), "code": "repeat",
+                           "message": f"identical to {dup[-1]['mid']}, which failed",
+                           "text": f"refused: this call is identical to {dup[-1]['mid']}, which failed with: {dup[-1]['code']} {dup[-1]['message']}. Sending it again cannot work. Change the content."};
+                } else {
+                    res = run_tool(self.project_dir, self.writes, call["tool"], call["args"]);
+                }
+                if call["tool"] == "submit" and res["status"] == "ok" and self.actions {
+                    for r in run_actions(self.project_dir, self.port, self.actions) {
+                        self.log.event("tool", "harness", {"tool": "browse", "target": r["name"], "status": r["status"], "message": r["message"], "result": r["text"]});
+                        if r["status"] != "ok" {
+                            res = {"status": "failed", "target": "step", "code": "BROWSER", "message": f'action "{r["name"]}": {r["message"]}'[:200],
+                                   "text": f'check: clean\nbrowser test failed in action "{r["name"]}": {r["message"]}\n{r["text"]}'};
+                            break;
+                        }
+                    }
+                }
                 t = {"mid": mid, "call": True, "tool": call["tool"], "args": call["args"], "raw": out["text"]};
             } else {
                 res = {"status": "refused", "target": "", "code": "malformed", "message": call["error"],

@@ -3,6 +3,7 @@ import os;
 import re;
 import time;
 import signal;
+import shutil;
 import subprocess;
 import from urllib.request { urlopen }
 
@@ -74,6 +75,8 @@ def run_steps(project_dir: str, base: str, steps: list[list[str]]) -> dict {
 """Start the app once, run every action, stop the app."""
 def run_actions(project_dir: str, port: int, actions: list[dict]) -> list[dict] {
     base = f"http://127.0.0.1:{port}";
+    data_dir = os.path.join(project_dir, ".jac", "data");
+    if os.path.isdir(data_dir) { shutil.rmtree(data_dir); }
     logf = open(os.path.join(project_dir, ".jach-server.log"), "w");
     server = subprocess.Popen(["jac", "start", "main.jac", "--port", str(port)], cwd=project_dir, stdin=subprocess.DEVNULL, stdout=logf, stderr=subprocess.STDOUT, start_new_session=True);
     results: list[dict] = [];

@@ -4,6 +4,7 @@ import json;
 import sys;
 import time;
 import shutil;
+import subprocess;
 import from tree { Project, Feature, Task, Step, Has }
 import from log { RunLog }
 import from session { Session }
@@ -32,7 +33,14 @@ with entry {
 
     log.event("run", "harness", {"requirement": goal, "task_spec": spec["id"]});
     print(f"run {run_id}");
-    w = t spawn Session(server=server, log=log, project_dir=project_dir);
+    feedback = os.environ.get("JACH_BROWSER_FEEDBACK", "1") == "1";
+    dry = os.environ.get("JACH_DRY", "") == "1";
+    guide = "";
+    if os.environ.get("JACH_GUIDE", "") {
+        guide = subprocess.run(["jac", "guide", os.environ["JACH_GUIDE"]], capture_output=True, text=True).stdout;
+    }
+    log.event("run", "harness", {"settings": {"dry": dry, "guide": os.environ.get("JACH_GUIDE", ""), "browser_feedback": feedback}});
+    w = t spawn Session(server=server, log=log, project_dir=project_dir, actions=spec["actions"] if feedback else [], dry=dry, guide=guide);
     log.event("run", "harness", {"outcome": w.outcome, "turns": w.n});
     print(f"outcome: {w.outcome} | turns: {w.n} | log: {run_dir}/events.jsonl");
     log.at({"session": "", "task": "T01", "step": "e2e"});

@@ -18,6 +18,8 @@
 - [research/compiler-probe-0.36.1.md](research/compiler-probe-0.36.1.md): experiments on what the 0.36.1 compiler can detect and report; which failure modes are mechanically catchable
 - [research/chat-templates.md](research/chat-templates.md): how the Qwen 3.5, Ornith 1.5 and JacLLM templates render earlier reasoning;
 - [research/first-runs-2026-11-12.md](research/first-runs-2026-11-12.md): the minimal harness on one level-1 task;
+- [research/level2-runs-2026-11-13.md](research/level2-runs-2026-11-13.md): the to-do list task; 1 of 12 passed; what blocks the model.
+- [reports/2026-11-13-morning.md](reports/2026-11-13-morning.md): summary of the work of 2026-11-12 to 13.
 - [research/jac-cli-surface.md](research/jac-cli-surface.md): the jac 0.36.1 commands a harness would wrap
 
 ## The six layers of a harness
