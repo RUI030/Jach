@@ -1,6 +1,6 @@
 # 0007: Fold and unfold
 
-- **Status:** Accepted, 2026-11-12. *K* is set later from measurement.
+- **Status:** Accepted, 2026-11-12. **Amended the same day: see section 10, which overrides sections 1, 2 and 5 where they differ.**
 - **Layer:** context assembly
 - **Builds on:** [0005](0005-task-format.md) (context resets per task; steps fold when they pass), [0006](0006-tool-set.md) (`unfold`)
 
@@ -165,3 +165,26 @@ The model's running theory of the bug is deliberately not carried over: a fresh 
 ## 9. Training view
 
 Training trajectories are rendered with the same rules, so the model learns in the context it will see at run time: `ok` calls in full, earlier failures as one line.
+
+## 10. Amendment: start with failures only
+
+Reason: training cost. If the context changes shape at every turn, every model turn needs its own training sample, each re-reading a long, mostly repeated context for one reply ([0012](0012-run-log-format.md) section 4). The less the context is rewritten, the more turns one sample can cover.
+
+What is active now, inside one session (one task):
+
+| Rule | State |
+|---|---|
+| A `failed` or `refused` turn is folded to a line when the model makes its next call | **Active** |
+| Context resets at each task; finished tasks appear as cards | **Active** |
+| Superseded reads and writes of a file are folded | Deferred |
+| `ok` results older than *K* turns are folded | Deferred |
+| A finished step is folded to a block | Deferred |
+| Reasoning is removed from earlier turns | **Withdrawn.** Reasoning stays, as the Ornith template renders it. Runaway reasoning is stopped by a budget on generation. |
+
+Deferred rules are switched on only when measurement shows a session running out of room or the model being misled by stale content.
+
+Also added: **the context never shows who acted.**
+
+- A fix made by the admin is shown as an ordinary assistant turn.
+- A `stuck` call, its result, and any admin hint are removed from the view once the step moves on.
+- This holds at run time and in training samples alike, so the model learns the correct action directly and never learns that help exists in the history.

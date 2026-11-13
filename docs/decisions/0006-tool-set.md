@@ -89,6 +89,12 @@ Measured on 0.36.1, the compiler's own messages are uneven, which is why the not
 
 The note is added only on an error, not on every use of a keyword. The keyword table is data read for the installed version (decision 8).
 
+### `guide` and loading documentation
+
+There is no separate skill-loading tool. The topics of `jac guide` are the skills: 40 topics on 0.36.1, between about 900 and 3,700 words each. `guide(topic)` loads one.
+
+The model rarely asks for documentation by itself (3 of 12 tasks), so the tool is not the main path. The harness puts the relevant topic, or the relevant part of it, into the context at the start of a step, chosen by the kind of step. Which topic for which step is decision 8.
+
 ### Line numbers
 
 The model never counts lines.

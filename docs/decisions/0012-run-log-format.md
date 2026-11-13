@@ -80,25 +80,30 @@ Example:
 
 ## 4. Training samples
 
-**One sample per model turn**: the context exactly as rendered for that turn, and the reply as the target.
+With the fold rules now active (0007 section 10), the context only changes shape after a failure. A session is therefore exported as a small number of multi-turn samples, not one per turn.
 
-Reason: with folding, the context at turn 10 is not the context at turn 9 plus one message. Earlier turns have changed level. A whole session cannot be stored as one conversation and still match what the model saw.
+| Sample | Context | Turns carrying loss |
+|---|---|---|
+| Main: one per session | The session as it ends: every failure folded to a line, every `ok` turn in full | Every `ok` turn whose previous turn was also `ok` (or the first turn) |
+| Fix: one per failure that was followed by an `ok` turn | The same, cut at that point, with the failure shown in full | The one turn that fixed it |
 
-Which turns become targets is decided at export, from the log:
+A session with *n* turns and *f* fixed failures gives 1 + *f* samples instead of *n*. The fix samples are the debugging data.
 
-| Turn | Target? |
+Which turns carry loss, decided at export from the log:
+
+| Turn | Loss? |
 |---|---|
 | Reply whose tool call ended `ok` | Yes |
-| Reply whose call ended `failed` or `refused` | No. It still appears, folded, in the context of later samples. |
-| `stuck` call | No |
-| Admin fix, replayed as small-model tool calls | Yes, in the context the small model had reached |
-| Turns after an Advise hint | Exported with the hint removed from the context |
+| Reply whose call ended `failed` or `refused` | No. It appears as a folded line. |
+| `stuck` call, its result, admin hints | Removed from the sample entirely |
+| Admin fix, replayed as small-model tool calls | Yes, as an ordinary assistant turn. Nothing marks it as the admin's. |
 
 - The rules are applied by the exporter, not written into the log. Changing a rule means exporting again, not running again.
+- The log still records the actor of every turn; only the rendered views hide it.
 - Whole-run filters (only runs that passed E2E, and so on) belong to the dataset step, not to this format.
 
 ## 5. Open points
 
-1. **Cost of one sample per turn.** A session of *n* turns gives *n* samples whose contexts overlap heavily. Only the reply carries loss. The training side should confirm this is affordable, or we need a fold design where each context is an exact prefix of the next.
+1. **Sample count.** Resolved by section 4: 1 + *f* samples per session. To confirm with the training side.
 2. **Failed turns as targets.** This draft never trains on them. A reply that failed only because of a later check (correct edit, unrelated error elsewhere) may still be a good target. Decide after looking at real runs.
 3. **Full prompt text.** Rebuilt from `shown` in this draft. Storing it in full is simpler to audit and much larger.
