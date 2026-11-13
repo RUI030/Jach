@@ -38,13 +38,45 @@ def wait_snapshot(cwd: str, want: str, limit: float = 10.0) -> str {
     return snap;
 }
 
-def run_action(project_dir: str, port: int, steps: list[list[str]]) -> dict {
-    base = f"http://127.0.0.1:{port}";
-    logf = open(os.path.join(project_dir, ".jach-server.log"), "w");
-    server = subprocess.Popen(["jac", "start", "main.jac", "--port", str(port)], cwd=project_dir, stdin=subprocess.DEVNULL, stdout=logf, stderr=subprocess.STDOUT, start_new_session=True);
+"""Run the steps of one action against a running app."""
+def run_steps(project_dir: str, base: str, steps: list[list[str]]) -> dict {
     done: list[str] = [];
     status = "ok";
     message = "";
+    for step in steps {
+        verb = step[0];
+        arg = step[1];
+        if verb == "open" {
+            sh(["jac", "browse", "open", base + arg], project_dir);
+            wait_snapshot(project_dir, "RootWebArea");
+        } elif verb == "click" or verb == "fill" {
+            snap = wait_snapshot(project_dir, f'"{arg}"');
+            ref = find_ref(snap, arg);
+            if not ref { status = "failed"; message = f'{verb} "{arg}": no such element on the page'; break; }
+            if verb == "click" { sh(["jac", "browse", "click", ref], project_dir); }
+            else { sh(["jac", "browse", "fill", ref, step[2]], project_dir); }
+        } elif verb == "expect" {
+            snap = wait_snapshot(project_dir, arg);
+            if arg not in snap { status = "failed"; message = f'expect "{arg}": text not on the page'; break; }
+        }
+        done.append(" ".join(step) + " -> ok");
+    }
+    console = sh(["jac", "browse", "console"], project_dir);
+    errs = [ln for ln in console.split("\n") if "[error]" in ln and "favicon.ico" not in ln];
+    if status == "failed" and errs { message += "; " + errs[0][:200]; }
+    if status == "failed" {
+        snap = sh(["jac", "browse", "snapshot"], project_dir);
+        done.append("page at failure:\n" + snap[:1500]);
+    }
+    return {"status": status, "message": message, "text": "\n".join(done)};
+}
+
+"""Start the app once, run every action, stop the app."""
+def run_actions(project_dir: str, port: int, actions: list[dict]) -> list[dict] {
+    base = f"http://127.0.0.1:{port}";
+    logf = open(os.path.join(project_dir, ".jach-server.log"), "w");
+    server = subprocess.Popen(["jac", "start", "main.jac", "--port", str(port)], cwd=project_dir, stdin=subprocess.DEVNULL, stdout=logf, stderr=subprocess.STDOUT, start_new_session=True);
+    results: list[dict] = [];
     try {
         ready = False;
         for i in range(90) {
@@ -52,34 +84,17 @@ def run_action(project_dir: str, port: int, steps: list[list[str]]) -> dict {
             time.sleep(2);
         }
         if not ready {
-            status = "failed"; message = "the app did not start: /static/client.js never returned 200";
-        } else {
-            for step in steps {
-                verb = step[0];
-                arg = step[1];
-                if verb == "open" {
-                    sh(["jac", "browse", "open", base + arg], project_dir);
-                    wait_snapshot(project_dir, "RootWebArea");
-                } elif verb == "click" or verb == "fill" {
-                    snap = wait_snapshot(project_dir, f'"{arg}"');
-                    ref = find_ref(snap, arg);
-                    if not ref { status = "failed"; message = f'{verb} "{arg}": no such element on the page'; break; }
-                    if verb == "click" { sh(["jac", "browse", "click", ref], project_dir); }
-                    else { sh(["jac", "browse", "fill", ref, step[2]], project_dir); }
-                } elif verb == "expect" {
-                    snap = wait_snapshot(project_dir, arg);
-                    if arg not in snap { status = "failed"; message = f'expect "{arg}": text not on the page'; break; }
-                }
-                done.append(" ".join(step) + " -> ok");
-            }
+            return [{"name": a["name"], "status": "failed", "message": "the app did not start: /static/client.js never returned 200", "text": ""} for a in actions];
         }
-        console = sh(["jac", "browse", "console"], project_dir);
-        errs = [ln for ln in console.split("\n") if "[error]" in ln and "favicon.ico" not in ln];
-        if status == "failed" and errs { message += "; " + errs[0][:160]; }
+        for a in actions {
+            r = run_steps(project_dir, base, a["steps"]);
+            r["name"] = a["name"];
+            results.append(r);
+        }
         sh(["jac", "browse", "close"], project_dir);
     } finally {
         os.killpg(server.pid, signal.SIGTERM);
         logf.close();
     }
-    return {"status": status, "message": message, "text": "\n".join(done)};
+    return results;
 }

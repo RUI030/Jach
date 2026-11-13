@@ -1,12 +1,13 @@
 """CLI entry: run one task on a fresh copy of the template."""
 import os;
+import json;
 import sys;
 import time;
 import shutil;
 import from tree { Project, Feature, Task, Step, Has }
 import from log { RunLog }
 import from session { Session }
-import from browse { run_action }
+import from browse { run_actions }
 
 with entry {
     here_dir = os.path.dirname(os.path.abspath(__file__));
@@ -20,24 +21,27 @@ with entry {
     log = RunLog(run_dir=run_dir);
     log.meta({"run": run_id, "jac": "0.36.1", "model_server": server, "limits": {"failures": 5, "same_error": 3, "step_tokens": 32000}, "fold": "failures-only"});
 
-    goal = "Add a server function `hello` in server.jac that returns the text \"Hello from Jac\". "
-        + "Add a button labelled \"Hello\" to the page in frontend.jac. When it is clicked, the page shows the text returned by `hello`. "
-        + "Keep the existing Ping button working.";
-    if os.environ.get("JACH_HINT", "") { goal += " Remember that main.jac must import every server function the page calls."; }
+    spec_path = sys.argv[-1] if sys.argv[-1].endswith(".json") else os.path.join(repo, "jach", "tasks", "level1-hello.json");
+    spec = json.loads(open(spec_path).read());
+    goal = spec["goal"];
     p = Project(name="app", dir=project_dir);
-    f = Feature(fid="F1", title="Hello button");
-    t = Task(tid="T01", title="Hello button", goal=goal, writes=["server.jac", "frontend.jac", "main.jac"]);
+    f = Feature(fid="F1", title=spec["title"]);
+    t = Task(tid="T01", title=spec["title"], goal=goal, writes=spec["writes"]);
     s = Step(kind="task");
     root +>:Has:+> p; p +>:Has:+> f; f +>:Has:+> t; t +>:Has:+> s;
 
-    log.event("run", "harness", {"requirement": goal});
+    log.event("run", "harness", {"requirement": goal, "task_spec": spec["id"]});
     print(f"run {run_id}");
     w = t spawn Session(server=server, log=log, project_dir=project_dir);
     log.event("run", "harness", {"outcome": w.outcome, "turns": w.n});
     print(f"outcome: {w.outcome} | turns: {w.n} | log: {run_dir}/events.jsonl");
     log.at({"session": "", "task": "T01", "step": "e2e"});
-    steps = [["open", "/"], ["click", "Hello"], ["expect", "Hello from Jac"], ["click", "Ping"], ["expect", "pong"]];
-    e2e = run_action(project_dir, 8795, steps);
-    log.event("tool", "harness", {"tool": "browse", "status": e2e["status"], "message": e2e["message"], "result": e2e["text"]});
-    print(f"e2e: {e2e['status']} {e2e['message']}");
+    e2e = run_actions(project_dir, 8795, spec["actions"]);
+    for r in e2e {
+        log.event("tool", "harness", {"tool": "browse", "target": r["name"], "status": r["status"], "message": r["message"], "result": r["text"]});
+        print(f"e2e {r['name']}: {r['status']} {r['message']}");
+    }
+    passed = all([r["status"] == "ok" for r in e2e]);
+    log.event("run", "harness", {"e2e": "passed" if passed else "failed"});
+    print("RESULT", spec["id"], "harness=" + w.outcome, "browser=" + ("passed" if passed else "failed"), "turns=" + str(w.n));
 }

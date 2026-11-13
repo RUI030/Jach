@@ -1,0 +1,11 @@
+{
+  "id": "level2-todo",
+  "level": 2,
+  "title": "To-do list",
+  "goal": "Turn the page into a to-do list. The page has a text input with the placeholder \"New task\", a button labelled \"Add\", and a list of the stored tasks below them. Tasks are stored on the server as `Task` nodes connected to root, each with a field `title: str`. Clicking Add stores a new task with the typed title and shows it in the list. Tasks that are already stored are shown when the page loads. You may remove the Ping button.",
+  "writes": ["server.jac", "frontend.jac", "main.jac"],
+  "actions": [
+    {"name": "add a task", "steps": [["open", "/"], ["fill", "New task", "Buy milk"], ["click", "Add"], ["expect", "Buy milk"]]},
+    {"name": "tasks are loaded", "steps": [["open", "/"], ["expect", "Buy milk"]]}
+  ]
+}
