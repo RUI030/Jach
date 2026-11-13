@@ -44,7 +44,7 @@ They are listed in the order they should be decided, because earlier ones constr
 | 4 | SDLC phases, their gates, and the artefact each produces | 4 | Decided: [0004](decisions/0004-sdlc-phases-and-gates.md) |
 | 5 | Task format: scope, inputs, outputs, acceptance criteria, resume protocol | 5 | Decided: [0005](decisions/0005-task-format.md) |
 | 6 | Tool set and schemas, per phase | 2 | Decided: [0006](decisions/0006-tool-set.md) |
-| 7 | Fold and unfold: what a folded turn keeps, how unfold is addressed | 3 | Proposed: [0007](decisions/0007-fold-and-unfold.md) |
+| 7 | Fold and unfold: what a folded turn keeps, how unfold is addressed | 3 | Decided: [0007](decisions/0007-fold-and-unfold.md) |
 | 8 | Dynamic Jac information: what is loaded, when, and from where | 3 | Open |
 | 9 | System prompt | 1, 3 | Open |
 | 10 | Stall detection and recovery (repeated calls, repair budget) | 5 | Open |

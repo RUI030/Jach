@@ -1,6 +1,6 @@
 # 0007: Fold and unfold
 
-- **Status:** Proposed, 2026-11-12. Not yet accepted.
+- **Status:** Accepted, 2026-11-12. *K* is set later from measurement.
 - **Layer:** context assembly
 - **Builds on:** [0005](0005-task-format.md) (context resets per task; steps fold when they pass), [0006](0006-tool-set.md) (`unfold`)
 

@@ -76,3 +76,4 @@
 | I-070 | 2026-11-12 | `lookup` tool: say what a name is (keyword, built-in, file, function, type, package export, unknown) | R | 6 | decided |
 | I-071 | 2026-11-12 | When an error sits on a reserved word, add what that word means so the model can judge misuse. Probe: `node = "a"` gives an error that does not mention the keyword | R | 6, 8 | decided |
 | I-072 | 2026-11-12 | Write the harness itself in Jac: work tree as nodes, flow as walkers, by-llm for model calls | R | 11 | discussing |
+| I-073 | 2026-11-12 | Use walkers with `report` to extract views of a run (model context, training samples, token statistics) from a graph of turn nodes; record events to an append-only JSONL file by hand. Probe on 0.36.1: `report` values come back in `.reports`, are also printed to stdout under `jac run`; the graph persists between runs; walking 5,000 turns took 2.7 s | R | 12, 11 | discussing |
