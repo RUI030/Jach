@@ -75,13 +75,18 @@ def call_admin(provider: str, project_dir: str, prompt: str) -> str {
 """Takeover rung: the admin edits until the gate passes or it has failed ADMIN_FAILURES times."""
 def takeover(log: RunLog, provider: str, project_dir: str, card: str, writes: list[str], failure: str, port: int, actions: list[dict]) -> dict {
     log.event("escalate", "harness", {"tier": "takeover", "provider": provider});
+    # Codex and Claude read these files at start-up; they are removed before the gate runs.
+    rules = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin_conventions.md")).read();
+    rule_files = [os.path.join(project_dir, "AGENTS.md"), os.path.join(project_dir, "CLAUDE.md")];
     current = failure;
     for attempt in range(1, ADMIN_FAILURES + 1) {
         before = snapshot(project_dir);
         prompt = admin_prompt(card, writes, current, actions);
         log.event("request", "admin", {"attempt": attempt, "prompt": prompt});
         t0 = time.time();
+        for rf in rule_files { with open(rf, "w") as f { f.write(rules); } }
         said = call_admin(provider, project_dir, prompt);
+        for rf in rule_files { if os.path.isfile(rf) { os.remove(rf); } }
         log.event("reply", "admin", {"attempt": attempt, "raw": said, "sec": round(time.time() - t0, 1)});
         after = snapshot(project_dir);
         changed = [name for name in after if before.get(name) != after[name]];

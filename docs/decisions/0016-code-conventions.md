@@ -56,7 +56,13 @@ No rule text is added to the system prompt unless measurement shows the three ab
 
 Already enforced: Jac import form (compiler), entry-file imports (wiring check), read before change.
 
-Candidates, not decided: nodes and walkers instead of Python-style globals for stored data; shadcn components and layout rules. Each needs a check before it becomes a convention.
+Data on the graph (checked): a file with public endpoints has no module-level variable holding data; state that does not survive a restart of the app fails the browser test.
+
+Functions and walkers (decided 2026-11-13): `def:pub` is correct Jac where it fits. A read or update that walks more than one hop from `root` is a `walker:pub`; a single hop is a `def:pub`. Not checked by script; a task card that needs a walker names it, and the gate checks that the name is declared as `walker:pub`.
+
+The admin gets these rules as `AGENTS.md` / `CLAUDE.md` in the project while it works (`jach/core/admin_conventions.md`).
+
+Candidate, not decided: shadcn components and layout rules.
 
 ## 5. Harness text is short
 
