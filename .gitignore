@@ -6,3 +6,4 @@ __pycache__/
 .env.*
 *tok*.txt
 .DS_Store
+runs/
