@@ -92,7 +92,9 @@ EOF
 
 $GOAL
 
-You may change server.jac, frontend.jac and main.jac."
+You may change server.jac, frontend.jac and main.jac.
+
+Jac is a new language, so do not write it from memory. Before writing code, read the Jac skills that match the task: at least \`jac-core-cheatsheet\` and \`jac-fullstack-patterns\`, plus any others whose descriptions fit (for example \`jac-cl-components\` for the page, \`jac-sv-endpoints\` and \`jac-sv-persistence\` for stored data). \`jac guide <topic>\` shows more bundled guides. Check your code with \`jac check\` before you finish."
   EXTRA=(--no-skills --skill "$HERE/skills")
   [ "$JAC_MCP" = 1 ] || EXTRA+=(--no-mcp)
 fi
