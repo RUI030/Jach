@@ -1,0 +1,15 @@
+{
+  "id": "level5-survey",
+  "level": 5,
+  "difficulty": "hard",
+  "title": "Survey builder",
+  "inspired_by": ["formbricks/formbricks"],
+  "goal": "Turn the page into a survey tool with two views. The list view has a text input with the placeholder \"Question\", a button labelled \"Create survey\", and the stored surveys, each shown as \"QUESTION (draft)\" before it is published or \"QUESTION (N responses)\" after, with a button labelled \"Open QUESTION\". Opening a survey replaces the list with the survey view: the question, a button labelled \"Back\" to the list, and each choice as \"CHOICE: N (P%)\", where N is its number of answers and P its share of all answers, rounded to a whole number (0 when there are none), followed by \"Responses: N\". While the survey is a draft, the view also has a text input with the placeholder \"Option\", a button labelled \"Add option\" and a button labelled \"Publish\". Once published, these are gone and each choice has a button labelled \"Answer CHOICE\" that records one answer. The server refuses to add options to a published survey and to record answers on a draft, also when asked directly. Surveys are stored as `Survey` nodes connected to root, with fields `question: str` and `published: bool`; each choice is a `Choice` node with fields `label: str` and `votes: int`, connected to its survey, not to root. Every change is stored on the server and shown when the page loads. You may remove the Ping button.",
+  "writes": ["server.jac", "frontend.jac", "main.jac"],
+  "actions": [
+    {"name": "build a survey", "steps": [["open", "/"], ["fill", "Question", "Best editor?"], ["click", "Create survey"], ["expect", "Best editor? (draft)"], ["click", "Open Best editor?"], ["fill", "Option", "Vim"], ["click", "Add option"], ["expect", "Vim: 0 (0%)"], ["fill", "Option", "Emacs"], ["click", "Add option"], ["expect", "Emacs: 0 (0%)"], ["fill", "Option", "VS Code"], ["click", "Add option"], ["expect", "VS Code: 0 (0%)"], ["expect_not", "Answer Vim"], ["click", "Publish"], ["expect_not", "Add option"], ["expect", "Responses: 0"]]},
+    {"name": "answer", "steps": [["open", "/"], ["click", "Open Best editor?"], ["expect", "Responses: 0"], ["click", "Answer Vim"], ["expect", "Responses: 1"], ["click", "Answer Vim"], ["expect", "Responses: 2"], ["click", "Answer Emacs"], ["expect", "Responses: 3"], ["click", "Answer VS Code"], ["expect", "Responses: 4"], ["expect", "Vim: 2 (50%)"], ["expect", "Emacs: 1 (25%)"], ["expect", "VS Code: 1 (25%)"]]},
+    {"name": "back to the list", "steps": [["open", "/"], ["click", "Open Best editor?"], ["expect", "Responses: 4"], ["click", "Back"], ["expect", "Best editor? (4 responses)"], ["expect_not", "Responses: 4"]]},
+    {"name": "survey is kept", "steps": [["open", "/"], ["expect", "Best editor? (4 responses)"], ["click", "Open Best editor?"], ["expect", "Vim: 2 (50%)"], ["expect", "VS Code: 1 (25%)"], ["expect_not", "Add option"]]}
+  ]
+}

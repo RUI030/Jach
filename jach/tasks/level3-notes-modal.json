@@ -1,6 +1,7 @@
 {
   "id": "level3-notes-modal",
   "level": 3,
+  "difficulty": "hard",
   "title": "Notes with a dialog",
   "goal": "Turn the page into a notes app. The page shows a button labelled \"New note\" and the list of stored note titles. Clicking New note opens a dialog over the page with a text input with the placeholder \"Title\", a button labelled \"Save\" and a button labelled \"Cancel\". Save stores the note on the server as a `Note` node connected to root with a field `title: str`, closes the dialog and shows the title in the list. Cancel closes the dialog and stores nothing. While the dialog is closed its input and buttons are not on the page. Stored notes are shown when the page loads. You may remove the Ping button.",
   "writes": [

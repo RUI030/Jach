@@ -1,0 +1,15 @@
+{
+  "id": "level5-forum-any",
+  "level": 5,
+  "difficulty": "hard",
+  "title": "Discussion forum",
+  "inspired_by": ["lobsters/lobsters", "discourse/discourse", "apache/answer"],
+  "goal": "Build a small discussion forum web app with two views. The front page has a text input with the placeholder \"Post title\", a button labelled \"Submit\", and the list of stored posts, each shown as \"TITLE [points: N, comments: K]\" with a button labelled \"Upvote TITLE\" and a button labelled \"Open TITLE\". Posts are listed by points, highest first; posts with equal points keep the order they were submitted. Above the list the front page shows \"Top post: TITLE\" for the first post in that order, or \"Top post: none\" when there are no posts. Clicking Submit stores a new post with 0 points and clears the input; clicking Upvote adds one point on the server. Clicking Open replaces the front page with the post view: the post title, its comments in the order they were written, a text input with the placeholder \"Comment\", a button labelled \"Post comment\", and a button labelled \"Back\" that returns to the front page. Posts and their comments are stored on the server. Every change is shown when the page loads and kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "submit posts", "steps": [["open", "/"], ["expect", "Top post: none"], ["fill", "Post title", "Jac tips"], ["click", "Submit"], ["expect", "Jac tips [points: 0, comments: 0]"], ["expect", "Top post: Jac tips"], ["fill", "Post title", "Rust news"], ["click", "Submit"], ["expect", "Rust news [points: 0, comments: 0]"], ["expect", "Top post: Jac tips"]]},
+    {"name": "upvote", "steps": [["open", "/"], ["click", "Upvote Rust news"], ["expect", "Rust news [points: 1, comments: 0]"], ["expect", "Top post: Rust news"]]},
+    {"name": "comment", "steps": [["open", "/"], ["click", "Open Jac tips"], ["expect_not", "Top post:"], ["fill", "Comment", "Nice"], ["click", "Post comment"], ["expect", "Nice"], ["fill", "Comment", "Thanks"], ["click", "Post comment"], ["expect", "Thanks"], ["click", "Back"], ["expect", "Jac tips [points: 0, comments: 2]"], ["expect", "Top post: Rust news"]]},
+    {"name": "forum is kept", "steps": [["open", "/"], ["expect", "Top post: Rust news"], ["expect", "Rust news [points: 1, comments: 0]"], ["expect", "Jac tips [points: 0, comments: 2]"], ["click", "Open Jac tips"], ["expect", "Nice"], ["expect", "Thanks"]]}
+  ]
+}

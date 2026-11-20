@@ -1,0 +1,12 @@
+{
+  "id": "level4-order-any",
+  "level": 4,
+  "difficulty": "hard",
+  "title": "Food order",
+  "goal": "Build a food ordering web app. The server has two shops, each with a menu: \"Noodle House\" sells \"Beef noodles\" for 8 and \"Dumplings\" for 5; \"Tea Bar\" sells \"Milk tea\" for 3 and \"Green tea\" for 2. The page first lists the shops as buttons labelled with the shop name. Clicking a shop shows its menu: each dish as \"DISH: $PRICE\" with a button labelled \"Add DISH\". The page shows the cart total as \"Total: $N\", starting at \"Total: $0\". A button labelled \"Place order\" stores the order on the server with its dishes and total, empties the cart and shows \"Order placed\". Stored orders are listed as \"Order 1: $N\", \"Order 2: $N\", in the order placed, and are shown when the page loads. Orders are kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "order", "steps": [["open", "/"], ["expect", "Total: $0"], ["click", "Noodle House"], ["expect", "Beef noodles: $8"], ["click", "Add Beef noodles"], ["click", "Add Dumplings"], ["expect", "Total: $13"], ["click", "Tea Bar"], ["click", "Add Milk tea"], ["expect", "Total: $16"], ["click", "Place order"], ["expect", "Order placed"], ["expect", "Order 1: $16"], ["expect", "Total: $0"]]},
+    {"name": "orders are kept", "steps": [["open", "/"], ["expect", "Order 1: $16"], ["expect", "Total: $0"]]}
+  ]
+}

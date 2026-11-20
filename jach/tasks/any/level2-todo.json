@@ -1,0 +1,47 @@
+{
+  "id": "level2-todo-any",
+  "level": 2,
+  "difficulty": "easy",
+  "title": "To-do list",
+  "goal": "Build a to-do list web app. The page has a text input with the placeholder \"New task\", a button labelled \"Add\", and a list of the stored tasks below them. Tasks are stored on the server, each with a title. Clicking Add stores a new task with the typed title and shows it in the list. Tasks that are already stored are shown when the page loads. Tasks are kept when the server restarts.",
+  "writes": [
+    "*"
+  ],
+  "actions": [
+    {
+      "name": "add a task",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "fill",
+          "New task",
+          "Buy milk"
+        ],
+        [
+          "click",
+          "Add"
+        ],
+        [
+          "expect",
+          "Buy milk"
+        ]
+      ]
+    },
+    {
+      "name": "tasks are loaded",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Buy milk"
+        ]
+      ]
+    }
+  ]
+}

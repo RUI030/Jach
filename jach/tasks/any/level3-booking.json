@@ -1,0 +1,12 @@
+{
+  "id": "level3-booking-any",
+  "level": 3,
+  "difficulty": "hard",
+  "title": "Slot booking",
+  "goal": "Build a booking sheet web app for one day. There are four slots: 9:00, 10:00, 11:00 and 12:00. Bookings are stored on the server, each with its slot and the name it is booked under. The page has a text input with the placeholder \"Your name\". Each free slot shows a button labelled \"Book SLOT\". Clicking it books the slot under the typed name; the slot then shows \"SLOT: booked by NAME\" and its Book button is gone. A slot that is already booked cannot be booked again, also when the server is asked directly. Stored bookings are shown when the page loads. Bookings are kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "book", "steps": [["open", "/"], ["expect", "Book 9:00"], ["fill", "Your name", "Ada"], ["click", "Book 10:00"], ["expect", "10:00: booked by Ada"], ["expect_not", "Book 10:00"]]},
+    {"name": "booking is kept", "steps": [["open", "/"], ["expect", "10:00: booked by Ada"], ["expect_not", "Book 10:00"], ["expect", "Book 11:00"]]}
+  ]
+}

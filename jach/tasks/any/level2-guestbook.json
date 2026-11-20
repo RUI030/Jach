@@ -1,0 +1,12 @@
+{
+  "id": "level2-guestbook-any",
+  "level": 2,
+  "difficulty": "easy",
+  "title": "Guestbook",
+  "goal": "Build a guestbook web app. The page has a text input with the placeholder \"Your name\", a text input with the placeholder \"Message\", a button labelled \"Sign\", and the list of stored entries. Entries are stored on the server, each with a name and a message. Clicking Sign stores an entry and shows it in the list as \"name: message\", then clears both inputs. Stored entries are shown when the page loads. Entries are kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "sign", "steps": [["open", "/"], ["fill", "Your name", "Ada"], ["fill", "Message", "Hello all"], ["click", "Sign"], ["expect", "Ada: Hello all"]]},
+    {"name": "entries are kept", "steps": [["open", "/"], ["expect", "Ada: Hello all"]]}
+  ]
+}

@@ -1,6 +1,7 @@
 {
   "id": "level1-hello",
   "level": 1,
+  "difficulty": "easy",
   "title": "Hello button",
   "goal": "Add a server function `hello` in server.jac that returns the text \"Hello from Jac\". Add a button labelled \"Hello\" to the page in frontend.jac. When it is clicked, the page shows the text returned by `hello`. Keep the existing Ping button working.",
   "writes": ["server.jac", "frontend.jac", "main.jac"],

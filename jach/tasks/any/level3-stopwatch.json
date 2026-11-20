@@ -1,0 +1,13 @@
+{
+  "id": "level3-stopwatch-any",
+  "level": 3,
+  "difficulty": "hard",
+  "title": "Stopwatch",
+  "goal": "Build a stopwatch web app. The page shows the elapsed time as \"Elapsed: S.S s\" with one decimal, starting at \"Elapsed: 0.0 s\", and buttons labelled \"Start\", \"Stop\", \"Reset\" and \"Save lap\". Start makes the time count up; Stop freezes it; Reset stops it and sets it back to 0.0. Save lap stores the current elapsed time in seconds on the server. Stored laps are listed as \"Lap 1\", \"Lap 2\", and so on, in the order saved, each followed by its time. Stored laps are shown when the page loads. Laps are kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "run and stop", "steps": [["open", "/"], ["expect", "Elapsed: 0.0 s"], ["click", "Start"], ["wait", "2"], ["click", "Stop"], ["expect_not", "Elapsed: 0.0 s"]]},
+    {"name": "reset and lap", "steps": [["open", "/"], ["click", "Start"], ["wait", "1"], ["click", "Stop"], ["click", "Save lap"], ["expect", "Lap 1"], ["click", "Reset"], ["expect", "Elapsed: 0.0 s"]]},
+    {"name": "laps are kept", "steps": [["open", "/"], ["expect", "Lap 1"]]}
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "level5-recipes",
+  "level": 5,
+  "difficulty": "hard",
+  "title": "Recipe book and shopping list",
+  "inspired_by": ["mealie-recipes/mealie", "TandoorRecipes/recipes", "TomBursch/kitchenowl"],
+  "goal": "Turn the page into a recipe book with a shopping list. To write a recipe there is a text input with the placeholder \"Recipe name\", a text input with the placeholder \"Ingredient\", a text input with the placeholder \"Quantity\" (a whole number) and a button labelled \"Add ingredient\", which adds the ingredient to the recipe being written, shown as \"QUANTITY x INGREDIENT\", and clears the ingredient and quantity inputs. A button labelled \"Save recipe\" stores the recipe with its ingredients and clears the form. Saved recipes are listed as \"NAME (K ingredients)\", each with a button labelled \"Plan NAME\" that adds the recipe's ingredients to the shopping list on the server: an ingredient already on the list gets the quantities added together, a new one goes to the end. The section headed \"Shopping list\" shows each item as \"INGREDIENT: QUANTITY\", or \"List is empty\", and a button labelled \"Clear list\" removes every item. Recipes are stored as `Recipe` nodes connected to root, with a field `name: str`; each ingredient is an `Ingredient` node with fields `name: str` and `quantity: int`, connected to its recipe, not to root. Shopping list items are `ListItem` nodes connected to root, with fields `name: str` and `quantity: int`. Stored recipes and the shopping list are shown when the page loads. You may remove the Ping button.",
+  "writes": ["server.jac", "frontend.jac", "main.jac"],
+  "actions": [
+    {"name": "write recipes", "steps": [["open", "/"], ["expect", "List is empty"], ["fill", "Recipe name", "Pancakes"], ["fill", "Ingredient", "eggs"], ["fill", "Quantity", "2"], ["click", "Add ingredient"], ["expect", "2 x eggs"], ["fill", "Ingredient", "milk"], ["fill", "Quantity", "1"], ["click", "Add ingredient"], ["expect", "1 x milk"], ["click", "Save recipe"], ["expect", "Pancakes (2 ingredients)"], ["fill", "Recipe name", "Omelette"], ["fill", "Ingredient", "eggs"], ["fill", "Quantity", "3"], ["click", "Add ingredient"], ["expect", "3 x eggs"], ["fill", "Ingredient", "cheese"], ["fill", "Quantity", "1"], ["click", "Add ingredient"], ["expect", "1 x cheese"], ["click", "Save recipe"], ["expect", "Omelette (2 ingredients)"]]},
+    {"name": "plan meals", "steps": [["open", "/"], ["click", "Plan Pancakes"], ["expect", "eggs: 2"], ["expect", "milk: 1"], ["click", "Plan Omelette"], ["expect", "eggs: 5"], ["expect", "cheese: 1"], ["expect", "milk: 1"]]},
+    {"name": "clear and replan", "steps": [["open", "/"], ["click", "Clear list"], ["expect", "List is empty"], ["click", "Plan Omelette"], ["expect", "eggs: 3"], ["expect", "cheese: 1"], ["expect_not", "milk: 1"]]},
+    {"name": "book is kept", "steps": [["open", "/"], ["expect", "Pancakes (2 ingredients)"], ["expect", "Omelette (2 ingredients)"], ["expect", "eggs: 3"], ["expect", "cheese: 1"], ["expect_not", "milk: 1"]]}
+  ]
+}

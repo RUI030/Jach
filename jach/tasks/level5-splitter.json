@@ -1,0 +1,15 @@
+{
+  "id": "level5-splitter",
+  "level": 5,
+  "difficulty": "hard",
+  "title": "Group expense splitter",
+  "inspired_by": ["spliit-app/spliit"],
+  "goal": "Turn the page into an expense splitter for a group. The page has a text input with the placeholder \"Member name\" and a button labelled \"Add member\". Each member is listed with their balance: \"NAME: +$X\" when they are owed money, \"NAME: -$X\" when they owe money and \"NAME: $0.00\" otherwise, with X shown with two decimals. Below, there is a text input with the placeholder \"Expense\", a text input with the placeholder \"Amount\" (whole dollars) and, for each member, a button labelled \"Paid by NAME\". Clicking one stores an expense with the typed description and amount, paid by that member and split equally among all members there are at that moment, and clears both inputs. A balance is what the member paid minus the sum of their shares. Stored expenses are listed as \"DESCRIPTION: $AMOUNT paid by NAME\", each with a button labelled \"Delete DESCRIPTION\" that removes it from the server; balances follow every change. Members are stored as `Member` nodes connected to root, with a field `name: str`. Each expense is an `Expense` node connected to root, with fields `description: str` and `amount: int`, an edge `PaidBy` to its payer and an edge `SharedBy` to each member it is split among. Stored members, expenses and balances are shown when the page loads. You may remove the Ping button.",
+  "writes": ["server.jac", "frontend.jac", "main.jac"],
+  "actions": [
+    {"name": "add members", "steps": [["open", "/"], ["fill", "Member name", "Ada"], ["click", "Add member"], ["expect", "Ada: $0.00"], ["fill", "Member name", "Ben"], ["click", "Add member"], ["expect", "Ben: $0.00"], ["fill", "Member name", "Cy"], ["click", "Add member"], ["expect", "Cy: $0.00"]]},
+    {"name": "add expenses", "steps": [["open", "/"], ["fill", "Expense", "Dinner"], ["fill", "Amount", "30"], ["click", "Paid by Ada"], ["expect", "Dinner: $30 paid by Ada"], ["expect", "Ada: +$20.00"], ["expect", "Ben: -$10.00"], ["expect", "Cy: -$10.00"], ["fill", "Expense", "Taxi"], ["fill", "Amount", "12"], ["click", "Paid by Ben"], ["expect", "Taxi: $12 paid by Ben"], ["expect", "Ada: +$16.00"], ["expect", "Ben: -$2.00"], ["expect", "Cy: -$14.00"]]},
+    {"name": "late member and delete", "steps": [["open", "/"], ["fill", "Member name", "Dee"], ["click", "Add member"], ["expect", "Dee: $0.00"], ["expect", "Ada: +$16.00"], ["click", "Delete Taxi"], ["expect_not", "Taxi"], ["expect", "Ada: +$20.00"], ["expect", "Ben: -$10.00"], ["expect", "Cy: -$10.00"], ["expect", "Dee: $0.00"]]},
+    {"name": "group is kept", "steps": [["open", "/"], ["expect", "Dinner: $30 paid by Ada"], ["expect", "Ada: +$20.00"], ["expect", "Ben: -$10.00"], ["expect", "Cy: -$10.00"], ["expect", "Dee: $0.00"], ["expect_not", "Taxi"]]}
+  ]
+}

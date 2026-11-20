@@ -1,0 +1,13 @@
+{
+  "id": "level2-shopping-any",
+  "level": 2,
+  "difficulty": "easy",
+  "title": "Shopping list",
+  "goal": "Build a shopping list web app. The page has a text input with the placeholder \"Item\", a button labelled \"Add\", and the list of stored items. Items are stored on the server, each with a name. Each item in the list has a button labelled \"Remove NAME\", where NAME is the item name. Clicking Add stores the item and shows it. Clicking a Remove button deletes that item from the server and from the list. Stored items are shown when the page loads. Items are kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "add two", "steps": [["open", "/"], ["fill", "Item", "Eggs"], ["click", "Add"], ["expect", "Remove Eggs"], ["fill", "Item", "Rice"], ["click", "Add"], ["expect", "Remove Rice"]]},
+    {"name": "remove one", "steps": [["open", "/"], ["expect", "Remove Eggs"], ["click", "Remove Eggs"], ["expect_not", "Remove Eggs"], ["expect", "Remove Rice"]]},
+    {"name": "removal is kept", "steps": [["open", "/"], ["expect", "Remove Rice"], ["expect_not", "Remove Eggs"]]}
+  ]
+}

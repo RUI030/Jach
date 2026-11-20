@@ -1,0 +1,12 @@
+{
+  "id": "level4-g2048-any",
+  "level": 4,
+  "difficulty": "hard",
+  "title": "2048",
+  "goal": "Build the 2048 game as a web app, on a 4 by 4 board. A new game starts with two tiles. The arrow keys slide and merge the tiles as in 2048, and a new tile appears after each move that changes the board. The page shows \"Score: N\" (starting at \"Score: 0\"), where merging two tiles adds the value of the new tile, and \"Moves: N\" (starting at \"Moves: 0\"), the number of arrow-key presses. A button labelled \"New game\" starts over. A button labelled \"Save score\" stores the current score on the server; the page shows the highest stored score as \"Best: N\", which is \"Best: 0\" before any score is stored and is shown when the page loads. The best score is kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "play", "steps": [["open", "/"], ["expect", "Score: 0"], ["expect", "Moves: 0"], ["expect", "Best: 0"], ["press", "ArrowLeft"], ["expect", "Moves: 1"], ["press", "ArrowUp"], ["press", "ArrowRight"], ["press", "ArrowDown"], ["expect", "Moves: 4"]]},
+    {"name": "new game and save", "steps": [["open", "/"], ["press", "ArrowLeft"], ["expect", "Moves: 1"], ["click", "New game"], ["expect", "Moves: 0"], ["click", "Save score"], ["expect", "Best: 0"]]}
+  ]
+}

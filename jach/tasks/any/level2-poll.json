@@ -1,0 +1,12 @@
+{
+  "id": "level2-poll-any",
+  "level": 2,
+  "difficulty": "easy",
+  "title": "Poll",
+  "goal": "Build a poll web app with the question \"Tea or coffee?\". There are two buttons, labelled \"Vote tea\" and \"Vote coffee\". The page shows the stored counts as \"Tea: N\" and \"Coffee: N\". Clicking a button adds one vote on the server and the page shows the new counts. Stored counts are shown when the page loads. Both start at 0. Counts are kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "vote", "steps": [["open", "/"], ["expect", "Tea: 0"], ["click", "Vote tea"], ["expect", "Tea: 1"], ["click", "Vote coffee"], ["click", "Vote coffee"], ["expect", "Coffee: 2"]]},
+    {"name": "votes are kept", "steps": [["open", "/"], ["expect", "Tea: 1"], ["expect", "Coffee: 2"]]}
+  ]
+}

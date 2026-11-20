@@ -1,0 +1,12 @@
+{
+  "id": "level2-checkin-any",
+  "level": 2,
+  "difficulty": "easy",
+  "title": "Check-in sheet",
+  "goal": "Build a check-in sheet web app. The server holds three people, Ada, Ben and Cy, each with a name and whether they are present; all are absent at first. They are created the first time the list is requested and never duplicated. The page shows a table with one row per person: the name, the status as \"NAME: absent\" or \"NAME: present\", and a button labelled \"Check in NAME\". Clicking the button marks that person present on the server and the row shows \"NAME: present\". The stored status is shown when the page loads. Statuses are kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "check in", "steps": [["open", "/"], ["expect", "Ada: absent"], ["expect", "Ben: absent"], ["click", "Check in Ben"], ["expect", "Ben: present"], ["expect", "Ada: absent"]]},
+    {"name": "status is kept", "steps": [["open", "/"], ["expect", "Ben: present"], ["expect", "Cy: absent"]]}
+  ]
+}

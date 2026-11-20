@@ -1,0 +1,13 @@
+{
+  "id": "level3-notes-modal-any",
+  "level": 3,
+  "difficulty": "hard",
+  "title": "Notes with a dialog",
+  "goal": "Build a notes web app. The page shows a button labelled \"New note\" and the list of stored note titles. Clicking New note opens a dialog over the page with a text input with the placeholder \"Title\", a button labelled \"Save\" and a button labelled \"Cancel\". Save stores the note on the server with its title, closes the dialog and shows the title in the list. Cancel closes the dialog and stores nothing. While the dialog is closed its input and buttons are not on the page. Stored notes are shown when the page loads. Notes are kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "cancel", "steps": [["open", "/"], ["click", "New note"], ["fill", "Title", "Draft"], ["click", "Cancel"], ["expect_not", "Draft"], ["expect_not", "Save"]]},
+    {"name": "save", "steps": [["open", "/"], ["click", "New note"], ["fill", "Title", "Ideas"], ["click", "Save"], ["expect", "Ideas"], ["expect_not", "Cancel"]]},
+    {"name": "notes are kept", "steps": [["open", "/"], ["expect", "Ideas"]]}
+  ]
+}

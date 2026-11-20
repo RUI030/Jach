@@ -1,0 +1,15 @@
+{
+  "id": "level4-pantry",
+  "level": 4,
+  "difficulty": "hard",
+  "title": "Pantry and shopping list",
+  "inspired_by": ["grocy/grocy", "TomBursch/kitchenowl"],
+  "goal": "Turn the page into a pantry tracker. The page has a text input with the placeholder \"Product\", a text input with the placeholder \"Minimum\" and a button labelled \"Add product\". Products are stored on the server as `Product` nodes connected to root, with fields `name: str`, `stock: int`, which starts at 0, and `minimum: int`. Each product is shown as \"NAME: N in stock\" with a button labelled \"Buy NAME\", which adds one to its stock, and a button labelled \"Use NAME\", which takes one away. Stock never goes below 0, also when the server is asked directly. Below the products, a section headed \"To buy\" lists every product whose stock is below its minimum as \"NAME x K\", where K is the minimum minus the stock, in the order the products were added; when no product is below its minimum it shows \"Nothing to buy\". Every change is stored on the server, and the stored products and list are shown when the page loads. You may remove the Ping button.",
+  "writes": ["server.jac", "frontend.jac", "main.jac"],
+  "actions": [
+    {"name": "add products", "steps": [["open", "/"], ["expect", "Nothing to buy"], ["fill", "Product", "Eggs"], ["fill", "Minimum", "2"], ["click", "Add product"], ["expect", "Eggs: 0 in stock"], ["expect", "Eggs x 2"], ["fill", "Product", "Rice"], ["fill", "Minimum", "1"], ["click", "Add product"], ["expect", "Rice: 0 in stock"], ["expect", "Rice x 1"], ["expect_not", "Nothing to buy"]]},
+    {"name": "buy and use", "steps": [["open", "/"], ["click", "Buy Eggs"], ["expect", "Eggs: 1 in stock"], ["click", "Buy Eggs"], ["expect", "Eggs: 2 in stock"], ["expect_not", "Eggs x"], ["click", "Buy Eggs"], ["expect", "Eggs: 3 in stock"], ["click", "Use Eggs"], ["expect", "Eggs: 2 in stock"], ["click", "Use Eggs"], ["expect", "Eggs: 1 in stock"], ["expect", "Eggs x 1"], ["click", "Buy Rice"], ["expect", "Rice: 1 in stock"], ["expect_not", "Rice x"]]},
+    {"name": "stock stops at zero", "steps": [["open", "/"], ["click", "Use Rice"], ["expect", "Rice: 0 in stock"], ["click", "Use Rice"], ["expect", "Rice: 0 in stock"], ["expect", "Rice x 1"]]},
+    {"name": "pantry is kept", "steps": [["open", "/"], ["expect", "Eggs: 1 in stock"], ["expect", "Rice: 0 in stock"], ["expect", "Eggs x 1"], ["expect", "Rice x 1"]]}
+  ]
+}

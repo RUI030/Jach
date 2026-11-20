@@ -1,0 +1,15 @@
+{
+  "id": "level4-kanban",
+  "level": 4,
+  "difficulty": "hard",
+  "title": "Kanban board",
+  "inspired_by": ["makeplane/plane", "wekan/wekan", "go-vikunja/vikunja"],
+  "goal": "Turn the page into a kanban board with three columns, in this order: \"To do\", \"Doing\" and \"Done\". Each column shows its name with the number of cards in it, as \"To do (N)\", \"Doing (N)\" and \"Done (N)\". The server stores the columns as `Column` nodes connected to root, with a field `name: str`; they are created the first time the board is requested and never duplicated. Each card is a `Card` node with a field `title: str`, connected to the column it is in, not to root. Above the board there is a text input with the placeholder \"Card title\" and a button labelled \"Add card\", which stores a new card in To do and clears the input. Each card shows its title and three buttons: \"Move TITLE right\" (not shown in Done), \"Move TITLE left\" (not shown in To do) and \"Delete TITLE\". Moving a card connects it to the next or previous column on the server instead of its current one; Delete removes the card from the server. The stored board is shown when the page loads. You may remove the Ping button.",
+  "writes": ["server.jac", "frontend.jac", "main.jac"],
+  "actions": [
+    {"name": "add cards", "steps": [["open", "/"], ["expect", "To do (0)"], ["expect", "Doing (0)"], ["expect", "Done (0)"], ["fill", "Card title", "Write spec"], ["click", "Add card"], ["expect", "Write spec"], ["fill", "Card title", "Fix login"], ["click", "Add card"], ["expect", "Fix login"], ["expect", "To do (2)"]]},
+    {"name": "move cards", "steps": [["open", "/"], ["click", "Move Write spec right"], ["expect", "Doing (1)"], ["expect", "To do (1)"], ["click", "Move Write spec right"], ["expect", "Done (1)"], ["expect", "Doing (0)"], ["expect_not", "Move Write spec right"], ["click", "Move Fix login right"], ["expect", "Doing (1)"], ["click", "Move Fix login left"], ["expect", "Doing (0)"], ["expect", "To do (1)"]]},
+    {"name": "delete a card", "steps": [["open", "/"], ["fill", "Card title", "Old idea"], ["click", "Add card"], ["expect", "To do (2)"], ["click", "Delete Old idea"], ["expect", "To do (1)"], ["expect_not", "Old idea"]]},
+    {"name": "board is kept", "steps": [["open", "/"], ["expect", "To do (1)"], ["expect", "Doing (0)"], ["expect", "Done (1)"], ["expect", "Move Write spec left"], ["expect", "Move Fix login right"], ["expect_not", "Old idea"]]}
+  ]
+}

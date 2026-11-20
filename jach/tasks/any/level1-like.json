@@ -1,0 +1,54 @@
+{
+  "id": "level1-like-any",
+  "level": 1,
+  "difficulty": "easy",
+  "title": "Like button",
+  "goal": "Build a like counter web app. The page shows the text \"Likes: N\", where N is the number of likes stored on the server, and a button labelled \"Like\". Clicking Like adds one to the stored number and the page shows the new number. The stored number is shown when the page loads. It starts at 0. The number is kept when the server restarts.",
+  "writes": [
+    "*"
+  ],
+  "actions": [
+    {
+      "name": "like once",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Likes: 0"
+        ],
+        [
+          "click",
+          "Like"
+        ],
+        [
+          "expect",
+          "Likes: 1"
+        ]
+      ]
+    },
+    {
+      "name": "count is kept",
+      "steps": [
+        [
+          "open",
+          "/"
+        ],
+        [
+          "expect",
+          "Likes: 1"
+        ],
+        [
+          "click",
+          "Like"
+        ],
+        [
+          "expect",
+          "Likes: 2"
+        ]
+      ]
+    }
+  ]
+}

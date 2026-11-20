@@ -1,0 +1,13 @@
+{
+  "id": "level2-expenses-any",
+  "level": 2,
+  "difficulty": "easy",
+  "title": "Expense tracker",
+  "inspired_by": ["Tanq16/ExpenseOwl", "mayswind/ezbookkeeping"],
+  "goal": "Build an expense tracker web app. The page has a text input with the placeholder \"Description\", a text input with the placeholder \"Amount\", a button labelled \"Add expense\", and the list of stored expenses, each shown as \"DESCRIPTION: $AMOUNT\". Amounts are whole numbers. Expenses are stored on the server, each with a description and an amount. Below the list the page shows the sum of all stored amounts as \"Total spent: $N\", which is \"Total spent: $0\" when there are no expenses. Clicking Add expense stores the expense, shows it in the list, updates the total and clears both inputs. Stored expenses and their total are shown when the page loads. Expenses are kept when the server restarts.",
+  "writes": ["*"],
+  "actions": [
+    {"name": "add expenses", "steps": [["open", "/"], ["expect", "Total spent: $0"], ["fill", "Description", "Lunch"], ["fill", "Amount", "12"], ["click", "Add expense"], ["expect", "Lunch: $12"], ["expect", "Total spent: $12"], ["fill", "Description", "Bus"], ["fill", "Amount", "3"], ["click", "Add expense"], ["expect", "Bus: $3"], ["expect", "Total spent: $15"]]},
+    {"name": "expenses are kept", "steps": [["open", "/"], ["expect", "Lunch: $12"], ["expect", "Bus: $3"], ["expect", "Total spent: $15"]]}
+  ]
+}

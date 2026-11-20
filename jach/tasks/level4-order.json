@@ -1,6 +1,7 @@
 {
   "id": "level4-order",
   "level": 4,
+  "difficulty": "hard",
   "title": "Food order",
   "goal": "Turn the page into a food ordering page. The server has two shops, each with a menu: \"Noodle House\" sells \"Beef noodles\" for 8 and \"Dumplings\" for 5; \"Tea Bar\" sells \"Milk tea\" for 3 and \"Green tea\" for 2. The page first lists the shops as buttons labelled with the shop name. Clicking a shop shows its menu: each dish as \"DISH: $PRICE\" with a button labelled \"Add DISH\". The page shows the cart total as \"Total: $N\", starting at \"Total: $0\". A button labelled \"Place order\" stores the order on the server as an `Order` node connected to root with fields `items: list[str]` and `total: int`, empties the cart and shows \"Order placed\". Stored orders are listed as \"Order 1: $N\", \"Order 2: $N\", in the order placed, and are shown when the page loads. You may remove the Ping button.",
   "writes": [
