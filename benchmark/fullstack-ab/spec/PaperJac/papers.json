@@ -1,0 +1,481 @@
+{
+  "papers": [
+    {
+      "id": "shannon",
+      "short": "Information Theory",
+      "title": "A Mathematical Theory of Communication",
+      "authors": [
+        "C. E. Shannon"
+      ],
+      "year": 1948,
+      "venue": "Bell System Technical Journal",
+      "field": "foundations",
+      "doi": "10.1002/j.1538-7305.1948.tb01338.x"
+    },
+    {
+      "id": "symbols",
+      "short": "Physical Symbol Systems",
+      "title": "Computer Science as Empirical Inquiry: Symbols and Search",
+      "authors": [
+        "Allen Newell",
+        "Herbert A. Simon"
+      ],
+      "year": 1976,
+      "venue": "Communications of the ACM",
+      "field": "foundations",
+      "doi": "10.1145/360018.360022"
+    },
+    {
+      "id": "lenet",
+      "short": "LeNet",
+      "title": "Gradient-based learning applied to document recognition",
+      "authors": [
+        "Yann LeCun",
+        "Léon Bottou",
+        "Yoshua Bengio",
+        "Patrick Haffner"
+      ],
+      "year": 1998,
+      "venue": "Proceedings of the IEEE",
+      "field": "vision",
+      "doi": "10.1109/5.726791"
+    },
+    {
+      "id": "alexnet",
+      "short": "AlexNet",
+      "title": "ImageNet classification with deep convolutional neural networks",
+      "authors": [
+        "Alex Krizhevsky",
+        "Ilya Sutskever",
+        "Geoffrey E. Hinton"
+      ],
+      "year": 2012,
+      "venue": "NeurIPS",
+      "field": "vision",
+      "doi": "10.1145/3065386"
+    },
+    {
+      "id": "gan",
+      "short": "GAN",
+      "title": "Generative Adversarial Nets",
+      "authors": [
+        "Ian J. Goodfellow",
+        "Jean Pouget-Abadie",
+        "Mehdi Mirza",
+        "Bing Xu",
+        "David Warde-Farley",
+        "Sherjil Ozair",
+        "Aaron Courville",
+        "Yoshua Bengio"
+      ],
+      "year": 2014,
+      "venue": "NeurIPS",
+      "field": "generative",
+      "arxiv": "1406.2661"
+    },
+    {
+      "id": "distillation",
+      "short": "Knowledge Distillation",
+      "title": "Distilling the Knowledge in a Neural Network",
+      "authors": [
+        "Geoffrey E. Hinton",
+        "Oriol Vinyals",
+        "Jeff Dean"
+      ],
+      "year": 2015,
+      "venue": "arXiv",
+      "field": "training",
+      "arxiv": "1503.02531"
+    },
+    {
+      "id": "resnet",
+      "short": "ResNet",
+      "title": "Deep Residual Learning for Image Recognition",
+      "authors": [
+        "Kaiming He",
+        "Xiangyu Zhang",
+        "Shaoqing Ren",
+        "Jian Sun"
+      ],
+      "year": 2015,
+      "venue": "CVPR",
+      "field": "vision",
+      "arxiv": "1512.03385"
+    },
+    {
+      "id": "transformer",
+      "short": "Attention Is All You Need",
+      "title": "Attention is All you Need",
+      "authors": [
+        "Ashish Vaswani",
+        "Noam Shazeer",
+        "Niki Parmar",
+        "Jakob Uszkoreit",
+        "Llion Jones",
+        "Aidan N. Gomez",
+        "Łukasz Kaiser",
+        "Illia Polosukhin"
+      ],
+      "year": 2017,
+      "venue": "NeurIPS",
+      "field": "language",
+      "arxiv": "1706.03762"
+    },
+    {
+      "id": "dml",
+      "short": "Deep Mutual Learning",
+      "title": "Deep Mutual Learning",
+      "authors": [
+        "Ying Zhang",
+        "Tao Xiang",
+        "Timothy M. Hospedales",
+        "Huchuan Lu"
+      ],
+      "year": 2017,
+      "venue": "CVPR",
+      "field": "training",
+      "arxiv": "1706.00384"
+    },
+    {
+      "id": "bert",
+      "short": "BERT",
+      "title": "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+      "authors": [
+        "Jacob Devlin",
+        "Ming-Wei Chang",
+        "Kenton Lee",
+        "Kristina Toutanova"
+      ],
+      "year": 2018,
+      "venue": "NAACL",
+      "field": "language",
+      "arxiv": "1810.04805"
+    },
+    {
+      "id": "ddpm",
+      "short": "DDPM",
+      "title": "Denoising Diffusion Probabilistic Models",
+      "authors": [
+        "Jonathan Ho",
+        "Ajay Jain",
+        "Pieter Abbeel"
+      ],
+      "year": 2020,
+      "venue": "NeurIPS",
+      "field": "generative",
+      "arxiv": "2006.11239"
+    },
+    {
+      "id": "vit",
+      "short": "ViT",
+      "title": "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale",
+      "authors": [
+        "Alexey Dosovitskiy",
+        "Lucas Beyer",
+        "Alexander Kolesnikov",
+        "Dirk Weissenborn",
+        "Xiaohua Zhai",
+        "Thomas Unterthiner",
+        "Mostafa Dehghani",
+        "Matthias Minderer",
+        "Georg Heigold",
+        "Sylvain Gelly",
+        "Jakob Uszkoreit",
+        "Neil Houlsby"
+      ],
+      "year": 2020,
+      "venue": "ICLR",
+      "field": "vision",
+      "arxiv": "2010.11929"
+    },
+    {
+      "id": "ddim",
+      "short": "DDIM",
+      "title": "Denoising Diffusion Implicit Models",
+      "authors": [
+        "Jiaming Song",
+        "Chenlin Meng",
+        "Stefano Ermon"
+      ],
+      "year": 2020,
+      "venue": "ICLR",
+      "field": "generative",
+      "arxiv": "2010.02502"
+    },
+    {
+      "id": "dapt",
+      "short": "Don't Stop Pretraining",
+      "title": "Don't Stop Pretraining: Adapt Language Models to Domains and Tasks",
+      "authors": [
+        "Suchin Gururangan",
+        "Ana Marasović",
+        "Swabha Swayamdipta",
+        "Kyle Lo",
+        "Iz Beltagy",
+        "Doug Downey",
+        "Noah A. Smith"
+      ],
+      "year": 2020,
+      "venue": "ACL",
+      "field": "training",
+      "arxiv": "2004.10964"
+    },
+    {
+      "id": "clip",
+      "short": "CLIP",
+      "title": "Learning Transferable Visual Models From Natural Language Supervision",
+      "authors": [
+        "Alec Radford",
+        "Jong Wook Kim",
+        "Chris Hallacy",
+        "Aditya Ramesh",
+        "Gabriel Goh",
+        "Sandhini Agarwal",
+        "Girish Sastry",
+        "Amanda Askell",
+        "Pamela Mishkin",
+        "Jack Clark",
+        "Gretchen Krueger",
+        "Ilya Sutskever"
+      ],
+      "year": 2021,
+      "venue": "ICML",
+      "field": "multimodal",
+      "arxiv": "2103.00020"
+    },
+    {
+      "id": "lora",
+      "short": "LoRA",
+      "title": "LoRA: Low-Rank Adaptation of Large Language Models",
+      "authors": [
+        "Edward Hu",
+        "Yelong Shen",
+        "Phillip Wallis",
+        "Zeyuan Allen-Zhu",
+        "Yuanzhi Li",
+        "Shean Wang",
+        "Lu Wang",
+        "Weizhu Chen"
+      ],
+      "year": 2021,
+      "venue": "ICLR",
+      "field": "training",
+      "arxiv": "2106.09685"
+    },
+    {
+      "id": "ldm",
+      "short": "Latent Diffusion",
+      "title": "High-Resolution Image Synthesis with Latent Diffusion Models",
+      "authors": [
+        "Robin Rombach",
+        "Andreas Blattmann",
+        "Dominik Lorenz",
+        "Patrick Esser",
+        "Björn Ommer"
+      ],
+      "year": 2021,
+      "venue": "CVPR",
+      "field": "generative",
+      "arxiv": "2112.10752"
+    },
+    {
+      "id": "rope",
+      "short": "RoPE",
+      "title": "RoFormer: Enhanced Transformer with Rotary Position Embedding",
+      "authors": [
+        "Jianlin Su",
+        "Yu Lu",
+        "Shengfeng Pan",
+        "Ahmed Murtadha",
+        "Bo Wen",
+        "Yunfeng Liu"
+      ],
+      "year": 2021,
+      "venue": "Neurocomputing",
+      "field": "language",
+      "arxiv": "2104.09864"
+    },
+    {
+      "id": "cpt",
+      "short": "Continual Pre-training",
+      "title": "Continual Pre-training of Language Models",
+      "authors": [
+        "Zixuan Ke",
+        "Yijia Shao",
+        "Haowei Lin",
+        "Tatsuya Konishi",
+        "Gyuhak Kim",
+        "Bing Liu"
+      ],
+      "year": 2023,
+      "venue": "ICLR",
+      "field": "training",
+      "arxiv": "2302.03241"
+    },
+    {
+      "id": "qlora",
+      "short": "QLoRA",
+      "title": "QLoRA: Efficient Finetuning of Quantized LLMs",
+      "authors": [
+        "Tim Dettmers",
+        "Artidoro Pagnoni",
+        "Ari Holtzman",
+        "Luke Zettlemoyer"
+      ],
+      "year": 2023,
+      "venue": "NeurIPS",
+      "field": "training",
+      "arxiv": "2305.14314"
+    }
+  ],
+  "cites": [
+    {
+      "from": "gan",
+      "to": "lenet"
+    },
+    {
+      "from": "gan",
+      "to": "alexnet"
+    },
+    {
+      "from": "distillation",
+      "to": "alexnet"
+    },
+    {
+      "from": "resnet",
+      "to": "alexnet"
+    },
+    {
+      "from": "transformer",
+      "to": "resnet"
+    },
+    {
+      "from": "dml",
+      "to": "distillation"
+    },
+    {
+      "from": "dml",
+      "to": "resnet"
+    },
+    {
+      "from": "bert",
+      "to": "transformer"
+    },
+    {
+      "from": "ddpm",
+      "to": "gan"
+    },
+    {
+      "from": "ddpm",
+      "to": "transformer"
+    },
+    {
+      "from": "vit",
+      "to": "alexnet"
+    },
+    {
+      "from": "vit",
+      "to": "resnet"
+    },
+    {
+      "from": "vit",
+      "to": "transformer"
+    },
+    {
+      "from": "vit",
+      "to": "bert"
+    },
+    {
+      "from": "ddim",
+      "to": "gan"
+    },
+    {
+      "from": "ddim",
+      "to": "ddpm"
+    },
+    {
+      "from": "clip",
+      "to": "alexnet"
+    },
+    {
+      "from": "clip",
+      "to": "resnet"
+    },
+    {
+      "from": "clip",
+      "to": "transformer"
+    },
+    {
+      "from": "clip",
+      "to": "bert"
+    },
+    {
+      "from": "clip",
+      "to": "vit"
+    },
+    {
+      "from": "lora",
+      "to": "transformer"
+    },
+    {
+      "from": "lora",
+      "to": "bert"
+    },
+    {
+      "from": "ldm",
+      "to": "gan"
+    },
+    {
+      "from": "ldm",
+      "to": "transformer"
+    },
+    {
+      "from": "ldm",
+      "to": "bert"
+    },
+    {
+      "from": "ldm",
+      "to": "ddpm"
+    },
+    {
+      "from": "ldm",
+      "to": "ddim"
+    },
+    {
+      "from": "ldm",
+      "to": "clip"
+    },
+    {
+      "from": "dapt",
+      "to": "transformer"
+    },
+    {
+      "from": "dapt",
+      "to": "bert"
+    },
+    {
+      "from": "rope",
+      "to": "transformer"
+    },
+    {
+      "from": "rope",
+      "to": "bert"
+    },
+    {
+      "from": "qlora",
+      "to": "lora"
+    },
+    {
+      "from": "cpt",
+      "to": "distillation"
+    },
+    {
+      "from": "cpt",
+      "to": "bert"
+    },
+    {
+      "from": "cpt",
+      "to": "dapt"
+    }
+  ]
+}

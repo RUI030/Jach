@@ -2,7 +2,7 @@
 # One baseline run with the pi harness: run.sh <arm: any|jac> <task id> <round>
 #
 #   any: empty folder, any stack, no skills, no MCP; spec jach/tasks/any/<task>.json; the app starts with `sh start.sh`.
-#   jac: jach/template, the Jac skills in tools/baseline/skills; spec jach/tasks/<task>.json; the app starts with `jac start`.
+#   jac: jach/template, the Jac skills in benchmark/baseline/skills; spec jach/tasks/<task>.json; the app starts with `jac start`.
 #
 # Environment (defaults in brackets):
 #   MODEL_ID [ornith-1.5-9b]   the model alias the OpenAI-compatible server serves (llama-server --alias)
