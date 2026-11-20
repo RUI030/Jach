@@ -7,3 +7,4 @@ __pycache__/
 *tok*.txt
 .DS_Store
 runs/
+docs/sessions/*.jsonl

@@ -42,7 +42,7 @@ Notes:
 - **Setup comes before any feature code.** The stock template does not run on 0.36.1, so we ship our own, with one working round trip already in it.
 - **Tests and acceptance steps are written by the small model, before any body.** After their phase they are frozen: the small model cannot edit them during Implement. Only the admin model (Takeover) or a return to Plan can change them.
 - **Debugging is not a phase.** It is what happens inside any phase when a gate fails (section 3).
-- **A change request re-enters Plan.** The model edits the declarations; the harness lists the tasks whose files are affected and reopens only those.
+- **A change request re-enters Plan.** See section 8: every change, including a bug fix or a removal, runs the same Plan, Tests, Implement, E2E loop.
 
 ## 2. Inside one task
 
@@ -143,6 +143,27 @@ action: add a task
 - Understand gate in auto mode: the harness checks that the sections are filled; no confirmation.
 - Changing a declaration during Implement is decided by the dependency graph. If nothing outside the current task uses the declaration, the change is allowed. If another task's code or tests use it, the work goes back to Plan and the harness reopens the tasks that depend on it.
 - Action steps stay at `open`, `fill`, `click`, `expect` for now. More are added when a level needs them.
+
+## 8. Change requests (decided 2026-11-19, not built yet)
+
+A new feature, a bug fix, a behaviour change and a removal are one loop: Plan, then Tests (written first, failing first), then Implement, then the whole suite and every action. Scaffolding is not a phase. Plan declares what is new; if nothing is new it declares nothing.
+
+| Change | Plan | Fails first | Implement |
+|---|---|---|---|
+| New feature | Declares the new functions and nodes | Its new tests and actions | Bodies |
+| Bug fix | Usually declares nothing; adds the task | A test or action that reproduces the bug | Changes bodies |
+| Behaviour change | Changes descriptions or signatures | The old tests, rewritten for the new behaviour | Changes code |
+| Removal | Names what goes; adds the task | An `expect_not` action; the removed feature's tests and actions are retired | Deletes code |
+
+A removal cannot be done in Plan: Plan's submit runs `jac check` on the whole project, and deleting a declaration the page still uses breaks it. Its proof is `jac check` (a use of a deleted name does not compile) plus the `expect_not` action. `jac code uses <name>` lists the uses in server modules and tests, but on 0.36.1 it misses client uses (`frontend.jac` calls and the `import from server { ... }` lines), so it is not the check.
+
+Gaps to build, in this order, before the next experiment:
+
+1. **An entry for an existing project.** A run takes an earlier run's project and task list plus a new requirement and its actions. Today every run starts from `jac create`, and resume only continues the same task list.
+2. **The Tests session runs whenever the request brings new expected behaviour**, not only when a `def:pub` has no body. Today a bug fix declares nothing, so Tests is skipped and nothing fails first. The rule becomes: every new test or action fails now; the old ones still pass, except those the request retires or rewrites.
+3. **Test files are frozen per phase, not for good.** The freeze exists so a model cannot pass a task by weakening or deleting its tests. That matters most for training data, where such a trajectory would teach the habit. The rule stays one sentence: `.test.jac` files can change only in a Tests session.
+4. **Actions and tests can be retired.** The request lists the old actions and tests it retires. Today actions only accumulate, so a removed feature's actions would run, and fail, forever.
+5. **Tasks are cut by feature, not by layer (to be decided by an A/B run on the ten specs: pass rate, replies and tokens per session, wiring errors, page tasks that fix server code).** Every task delivers at least one action, so its server functions, its page part and the wiring between them are built and proven in one session. A data model alone is not a task: nodes are declared in Plan, and the first task whose feature needs one gives it its functions. The Plan card says it in one sentence: a task is one thing the user can see and use, such as a form, a table or a toggle; actions that test the same thing go in one task. This also bounds the task count by the action count. Today Plan may add a task with no action, and on the first four Haiku runs it cut every app into "server functions" and "page".
 
 ## 7. Still open
 

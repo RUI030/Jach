@@ -114,13 +114,18 @@ stateDiagram-v2
 - The harness records tokens used per step, per task and per feature, with the outcome (passed, stalled, escalated). The reset point and any size limit are revisited when these measurements show where success drops.
 - Known risk, to be measured and not assumed: training samples so far reach 64k tokens, so behaviour beyond that is untested.
 
-## 6. Test-writing tasks
+## 6. The Tests session
 
-Writing tests is also cut into tasks, with the same card. They all run in the Tests phase of 0004, before any body is written.
+The Tests phase of 0004 is one session after Plan, before any body is written. It runs only when some `def:pub` server function has no body and no test calls it yet, so a resumed run skips it.
 
-| Field | For a test-writing task |
+| | Tests session |
 |---|---|
-| Unit | One feature's tests (split further if a feature has many endpoints) |
-| `implements` | The test names |
-| `writes` | The feature's test file |
-| Check | Tests compile; each test fails now; each endpoint of the feature has at least one test |
+| Card | The requirement, the functions to test, where tests go (`<module>.test.jac`, an annex that sees the module without imports) |
+| Tools | list, read, search, guide, guide_search, write, edit, test, submit |
+| Done when | `jac check` clean; descriptions; every test is in a `.test.jac` file; every function to test is called in a test; they still have no bodies; every test fails now |
+
+After the session:
+
+- **Each test belongs to one task:** the first task, in plan order, after which every function the test calls has a body. Its card lists them under `Done when` ("these tests pass"), and the finished tasks' tests run again at each later submit.
+- **`.test.jac` files are frozen.** A write or edit to one in a task session is refused. Only the admin may fix a test, and only a wrong one.
+- Tests run on a fresh copy of the project, so every run starts with no stored data. The run's result line reports the whole suite (`tests=passed/total`).

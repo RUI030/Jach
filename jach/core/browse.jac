@@ -93,8 +93,19 @@ def run_steps(project_dir: str, base: str, steps: list[list[str]]) -> dict {
     return {"status": status, "message": message, "text": "\n".join(done)};
 }
 
+"""Error lines from the app's server log, for a failed action."""
+def server_errors(project_dir: str) -> str {
+    path = os.path.join(project_dir, ".jach-server.log");
+    if not os.path.isfile(path) { return ""; }
+    rows = [ln.strip() for ln in open(path).read().split("\n") if re.search(r"Error|error\[|Traceback|Exception", ln)];
+    return "\nserver log:\n" + "\n".join(rows[-5:]) if rows else "";
+}
+
 """Start the app once, run every action, stop the app."""
-def run_actions(project_dir: str, port: int, actions: list[dict]) -> list[dict] {
+def run_actions(project_dir: str, port: int, actions: list[dict], start: list[str] = []) -> list[dict] {
+    # A non-Jac app names its own start command; it serves on $PORT and is ready when / returns 200.
+    cmd = start if start else ["jac", "start", "main.jac", "--port", str(port)];
+    ready_path = "/" if start else "/static/client.js";
     base = f"http://127.0.0.1:{port}";
     # Jac keys an app's stored data by its directory, in a machine-wide store. A fresh copy means empty data.
     src_dir = project_dir;
@@ -105,21 +116,36 @@ def run_actions(project_dir: str, port: int, actions: list[dict]) -> list[dict] 
     groups = [actions[:-1], actions[-1:]] if len(actions) > 1 else [actions];
     for (gi, group) in enumerate(groups) {
         logf = open(os.path.join(project_dir, ".jach-server.log"), "a");
-        server = subprocess.Popen(["jac", "start", "main.jac", "--port", str(port)], cwd=project_dir, stdin=subprocess.DEVNULL, stdout=logf, stderr=subprocess.STDOUT, start_new_session=True);
+        server = subprocess.Popen(cmd, cwd=project_dir, env={**os.environ, "PORT": str(port)}, stdin=subprocess.DEVNULL, stdout=logf, stderr=subprocess.STDOUT, start_new_session=True);
         try {
             ready = False;
             for i in range(90) {
-                if http_status(base + "/static/client.js") == 200 { ready = True; break; }
+                if http_status(base + ready_path) == 200 { ready = True; break; }
                 time.sleep(2);
             }
             if not ready {
+                errs = server_errors(project_dir);
                 shutil.rmtree(project_dir, ignore_errors=True);
-                return results + [{"name": a["name"], "status": "failed", "message": "the app did not start: /static/client.js never returned 200", "text": ""} for a in group];
+                return results + [{"name": a["name"], "status": "failed", "message": f"the app did not start: {ready_path} never returned 200", "text": errs.strip()} for a in group];
+            }
+            # JACH_SHOTS=<dir>: screenshot the page as it loads, and the page as each action ends (where it failed, if it did).
+            shots = os.environ.get("JACH_SHOTS", "");
+            if shots and gi == 0 {
+                os.makedirs(shots, exist_ok=True);
+                sh(["jac", "browse", "open", base + "/"], project_dir);
+                wait_snapshot(project_dir, "RootWebArea");
+                time.sleep(2.0);
+                sh(["jac", "browse", "screenshot", os.path.join(shots, "00-load.png")], project_dir);
             }
             for a in group {
                 r = run_steps(project_dir, base, a["steps"]);
                 r["name"] = a["name"];
+                if shots {
+                    slug = re.sub(r"[^a-z0-9]+", "-", str(a["name"]).lower()).strip("-");
+                    sh(["jac", "browse", "screenshot", os.path.join(shots, f"{len(results) + 1:02d}-{slug}.png")], project_dir);
+                }
                 if gi == 1 and r["status"] != "ok" { r["message"] = "after a server restart: " + r["message"]; }
+                if r["status"] != "ok" { r["text"] += server_errors(project_dir); }
                 results.append(r);
             }
             sh(["jac", "browse", "close"], project_dir);

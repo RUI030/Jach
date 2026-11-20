@@ -3,6 +3,7 @@
 - **Status:** Accepted, 2026-11-12
 - **Layer:** tool set
 - **Builds on:** [0004](0004-sdlc-phases-and-gates.md), [0005](0005-task-format.md), [model status](../research/model-status-2026-11-11.md)
+- **Amended by:** [0008](0008-jac-information-and-tool-calls.md): `guide` is the main path to documentation, with `guide_search`; several calls per reply; no line numbers in `read`
 
 ## Principles
 

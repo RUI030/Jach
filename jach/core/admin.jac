@@ -8,6 +8,7 @@ import time;
 import from log { RunLog }
 import from tools { run_tool }
 import from browse { run_actions }
+import from commands { run_suite }
 
 glob ADMIN_FAILURES = 5;
 glob ADMIN_TIMEOUT = 900;
@@ -25,9 +26,14 @@ def snapshot(project_dir: str) -> dict {
 }
 
 """The same gate the small model faces at submit: check, wiring, then the browser actions."""
-def gate(project_dir: str, port: int, actions: list[dict]) -> dict {
-    res = run_tool(project_dir, [], "submit", {});
+def gate(project_dir: str, port: int, actions: list[dict], tests: list[str] = []) -> dict {
+    res = run_tool(project_dir, "submit", {});
     if res["status"] != "ok" { return {"ok": False, "text": res["text"]}; }
+    if tests {
+        st = run_suite(project_dir);
+        bad = [n for n in tests if st["rows"].get(n) != "passed"];
+        if bad { return {"ok": False, "text": f"check: clean\nthese tests do not pass: {', '.join(bad)}\nfirst failure:\n" + st["fails"].get(bad[0], "\n".join(st["errors"]))}; }
+    }
     for r in run_actions(project_dir, port, actions) {
         if r["status"] != "ok" {
             return {"ok": False, "text": f'check: clean\nbrowser test failed in action "{r["name"]}": {r["message"]}\n{r["text"]}'};
@@ -36,16 +42,15 @@ def gate(project_dir: str, port: int, actions: list[dict]) -> dict {
     return {"ok": True, "text": "check: clean; browser actions passed"};
 }
 
-def admin_prompt(card: str, writes: list[str], failure: str, actions: list[dict]) -> str {
+def admin_prompt(card: str, failure: str, actions: list[dict]) -> str {
     steps = "\n".join([f'- {a["name"]}: {a["steps"]}' for a in actions]);
     return "You are the admin of a coding harness. A small model was building a Jac 0.36 web app in this directory and got stuck. "
         + "Finish its task with the smallest change that works.\n\n"
         + f"The task it was given:\n{card}\n\n"
         + f"The check that currently fails:\n{failure}\n\n"
-        + f"After you stop, the harness runs `jac check .`, checks that main.jac imports every server name the page calls, checks the descriptions, "
+        + f"After you stop, the harness runs `jac check .`, checks that main.jac imports every server name the page calls, checks the descriptions, runs the tests in the .test.jac files (which it may fix only if a test is wrong), "
         + f"and runs these browser actions on the app:\n{steps}\n\n"
         + "Rules:\n"
-        + f"- Change only these files: {', '.join(writes)}.\n"
         + "- Every file and every top-level declaration needs a one-sentence description directly above it saying what it does. No Args/Returns lists.\n"
         + "- Idiomatic Jac: stored data lives in nodes connected to root, never in module variables; the app is restarted during the test.\n"
         + "- Keep what already works. Do not add features the task does not ask for.\n"
@@ -73,7 +78,7 @@ def call_admin(provider: str, project_dir: str, prompt: str) -> str {
 }
 
 """Takeover rung: the admin edits until the gate passes or it has failed ADMIN_FAILURES times."""
-def takeover(log: RunLog, provider: str, project_dir: str, card: str, writes: list[str], failure: str, port: int, actions: list[dict]) -> dict {
+def takeover(log: RunLog, provider: str, project_dir: str, card: str, failure: str, port: int, actions: list[dict], tests: list[str] = []) -> dict {
     log.event("escalate", "harness", {"tier": "takeover", "provider": provider});
     # Codex and Claude read these files at start-up; they are removed before the gate runs.
     rules = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "admin_conventions.md")).read();
@@ -82,7 +87,7 @@ def takeover(log: RunLog, provider: str, project_dir: str, card: str, writes: li
     for attempt in range(1, ADMIN_FAILURES + 1) {
         before = snapshot(project_dir);
         for (name, text) in before.items() { log.event("file", "harness", {"path": name, "content": text, "note": "before admin", "attempt": attempt}); }
-        prompt = admin_prompt(card, writes, current, actions);
+        prompt = admin_prompt(card, current, actions);
         log.event("request", "admin", {"attempt": attempt, "prompt": prompt});
         t0 = time.time();
         for rf in rule_files { with open(rf, "w") as f { f.write(rules); } }
@@ -92,7 +97,7 @@ def takeover(log: RunLog, provider: str, project_dir: str, card: str, writes: li
         after = snapshot(project_dir);
         changed = [name for name in after if before.get(name) != after[name]];
         for name in changed { log.event("file", "admin", {"path": name, "content": after[name]}); }
-        g = gate(project_dir, port, actions);
+        g = gate(project_dir, port, actions, tests);
         log.event("tool", "harness", {"tool": "submit", "target": "step", "status": "ok" if g["ok"] else "failed", "result": g["text"], "after": "admin"});
         print(f"  [admin {attempt}] changed {', '.join(changed) or 'nothing'} -> {'ok' if g['ok'] else 'failed'}   [{round(time.time() - t0)} s] {said[:160]}");
         if g["ok"] { return {"ok": True, "attempts": attempt, "said": said}; }
