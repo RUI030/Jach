@@ -30,6 +30,21 @@ WORK=${WORK:-$HOME/.cache/jbw}
 GATE_PORT=${GATE_PORT:-8795}
 MEMMAX=${MEMMAX:-6G}
 CAP=(systemd-run --user --scope -q -p MemoryMax=$MEMMAX -p MemorySwapMax=0)
+# Jac keeps stored data in one machine-wide Postgres (~/.cache/jac/pg/main). An agent's `jac start` inside its
+# sandbox (own PID namespace) starts that server where the gate cannot see it, and the gate's own start then fails
+# ("pre-existing shared memory block is still in use"); it also touches every other Jac app on the machine. So every
+# run uses one dedicated server for this benchmark ($WORK/pg, port 54329) through JAC_DB_URL, started here if needed.
+# Each project still gets fresh data: Jac keys stored data by the project's directory.
+if [ "$ARM" = jac ] && [ -z "${JAC_DB_URL:-}" ]; then
+  PGBIN=$(ls -d "$HOME"/.cache/jac/pg/dist/*/bin 2>/dev/null | head -1)
+  if [ -n "$PGBIN" ]; then
+    PGDATA_JBW=$WORK/pg
+    [ -f "$PGDATA_JBW/PG_VERSION" ] || "$PGBIN/initdb" -D "$PGDATA_JBW" -U jbw --auth=trust -E UTF8 > "$WORK/pg-init.log" 2>&1
+    "$PGBIN/pg_ctl" -D "$PGDATA_JBW" status > /dev/null 2>&1 \
+      || "$PGBIN/pg_ctl" -D "$PGDATA_JBW" -w -o "-p 54329 -k /tmp -c listen_addresses=127.0.0.1" -l "$WORK/pg.log" start > /dev/null
+    export JAC_DB_URL=postgresql://jbw@127.0.0.1:54329/postgres
+  fi
+fi
 
 case $ARM in
   any) SPECF=$REPO/jach/tasks/any/$TASK.json ;;
